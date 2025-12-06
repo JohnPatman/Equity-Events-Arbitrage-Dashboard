@@ -1,0 +1,10 @@
+Country,DivYld,PE,PE_Fwd,PB,Perf_1Y,Perf_5Y,Perf_10Y,Market
+UK,3.19,15.43,12.98,2.27,21.44,13.86,8.37,Developed
+USA,1.14,28.2,22.86,5.57,14.74,14.79,14.6,Developed
+Germany,2.52,18.75,14.74,1.91,30.0,9.73,7.6,Developed
+China,1.96,14.65,12.65,1.69,33.38,-4.5,3.36,Emerging
+India,1.15,26.87,22.61,3.78,0.1,12.15,10.02,Emerging
+Mexico,3.72,15.14,12.49,2.26,46.72,14.69,5.57,Emerging
+Vietnam,1.14,20.97,,2.26,54.95,3.28,6.54,Frontier
+Argentina,0.92,13.11,10.17,1.44,-0.43,43.76,15.68,Emerging
+Philippines,3.21,11.3,9.93,1.63,-1.17,-1.86,-0.76,Emerging

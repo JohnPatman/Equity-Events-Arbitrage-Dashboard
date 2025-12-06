@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dividend Dashboard</title>
+    <style>
+        body { font-family: Arial; padding:40px; background:#111; color:#fff; }
+        table { border-collapse: collapse; width:100%; margin-top:20px; }
+        th,td { border:1px solid #333; padding:10px; text-align:left; }
+        th { background:#444; }
+        tr:nth-child(even) { background:#222; }
+    </style>
+</head>
+<body>
+    <h1>📅 FTSE Dividend Schedule</h1>
+    {{ tables[0] | safe }}
+</body>
+</html>

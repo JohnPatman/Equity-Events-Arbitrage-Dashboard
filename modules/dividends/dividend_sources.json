@@ -1,0 +1,12 @@
+{
+  "HSBA.L": {
+    "name": "HSBC",
+    "url": "https://www.hsbc.com/investors/shareholder-and-dividend-information/dividend-information-and-timetable",
+    "parser": "hsbc"
+  },
+  "ULVR.L": {
+    "name": "Unilever",
+    "url": "https://www.unilever.com/investors/investor-centre/dividends/",
+    "parser": "unilever"
+  }
+}
