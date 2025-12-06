@@ -61,4 +61,8 @@ Created by:
 
 John Patman
 
+<<<<<<< HEAD
 Corporate Actions Specialist | CFA Level 1 Candidate
+=======
+Corporate Actions Specialist | CFA Level 1 Candidate
+>>>>>>> e62591b (Describe what you changed)

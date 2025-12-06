@@ -21,9 +21,7 @@ For each supported security, the tool:
 This dashboard is useful for monitoring market inefficiencies,  
 pricing discrepancies, and ADR/local conversion opportunities.
 """)
-# ---------------------------------------------------------
-# Helper: Display Block
-# ---------------------------------------------------------
+
 def display_adr_block(name, result):
 
     adr_price = float(result["adr_price"])
@@ -70,10 +68,6 @@ def display_adr_block(name, result):
 
     st.divider()
 
-
-# ---------------------------------------------------------
-# ADR FUNCTIONS
-# ---------------------------------------------------------
 adr_functions = {
     "TSM": tsm_arbitrage,
     "BABA": baba_arbitrage,
@@ -82,9 +76,6 @@ adr_functions = {
     "AZN": azn_arbitrage,
 }
 
-# ---------------------------------------------------------
-# COMPUTE & DISPLAY RESULTS
-# ---------------------------------------------------------
 for name, fn in adr_functions.items():
     try:
         result = fn()

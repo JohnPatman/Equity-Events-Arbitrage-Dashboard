@@ -17,9 +17,7 @@ country-selection research, and global macro valuation analysis.
 """)
 st.subheader("Ratios, Performance & Value Scores (Developed, Emerging, and Frontier examples)")
 
-# ======================================================================
-# LOAD & PREPARE DATA
-# ======================================================================
+
 try:
     df = build_global_valuation_table().copy()
 
@@ -83,9 +81,7 @@ try:
          "Score (1–100)", "Verdict"]
     ]
 
-    # ======================================================================
-    # DARKER HEATMAP (Institutional tones)
-    # ======================================================================
+    
     def darker_heatmap(values):
         colors = []
         s = pd.Series(values)
@@ -122,9 +118,7 @@ try:
         .format(precision=2)
     )
 
-    # ======================================================================
-    # CENTRE ALIGNMENT FOR ALL CELLS
-    # ======================================================================
+    
     st.markdown("""
     <style>
     table td, table th {
@@ -136,9 +130,7 @@ try:
     # Render the styled table
     st.write(styled.to_html(), unsafe_allow_html=True)
 
-    # ======================================================================
-    # CSV EXPORT BUTTON
-    # ======================================================================
+
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Download CSV",

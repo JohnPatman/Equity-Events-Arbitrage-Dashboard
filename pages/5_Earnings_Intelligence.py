@@ -18,9 +18,6 @@ This dashboard is ideal for studying how a company behaves around earnings,
 supporting pre-earnings strategy design, and understanding expectations vs reality.
 """)
 
-# ---------------------------------------------------------
-# 📌 Ticker Input — Enhanced Styling
-# ---------------------------------------------------------
 
 st.markdown("""
 <style>
@@ -56,9 +53,6 @@ Enter US Earnings Ticker (e.g. AAPL, MSFT, NVDA):
 ticker = st.text_input("", value="AAPL").strip().upper()
 
 
-# ---------------------------------------------------------
-# 🎯 Earnings Logic
-# ---------------------------------------------------------
 if ticker:
 
     try:
@@ -79,9 +73,7 @@ if ticker:
             st.warning("Ticker has no reported earnings.")
             st.stop()
 
-        # ---------------------------------------------------------
-        # 📈 TOP SUMMARY METRICS
-        # ---------------------------------------------------------
+        
         c1, c2, c3 = st.columns(3)
 
         next_dt = stats_earn.get("next_date")
@@ -99,9 +91,7 @@ if ticker:
         with c3:
             st.metric("Beat Rate (%)", beat_rate_fmt)
 
-        # ---------------------------------------------------------
-        # 📊 Surprise Statistics
-        # ---------------------------------------------------------
+      
         avg_s = stats_earn.get("avg_surprise")
         std_s = stats_earn.get("std_surprise")
 
@@ -109,9 +99,7 @@ if ticker:
         st.write(f"- Average surprise: **{float(avg_s):.2f}%**" if avg_s is not None else "- Average surprise: N/A")
         st.write(f"- Surprise volatility (stdev): **{float(std_s):.2f} ppts**" if std_s is not None else "- Surprise volatility: N/A")
 
-        # ---------------------------------------------------------
-        # 📄 Recent Earnings Table (HTML-rendered, centred)
-        # ---------------------------------------------------------
+        
         st.subheader("Recent Reported Quarters")
 
         recent = hist.sort_values("Earnings Date").tail(6).copy()
@@ -129,7 +117,7 @@ if ticker:
         recent_tbl["Reported EPS"] = recent_tbl["Reported EPS"].astype(float).round(2)
         recent_tbl["Surprise(%)"] = recent_tbl["Surprise(%)"].astype(float).round(2)
 
-        # ⭐ TRUE centering with HTML table
+        # TRUE centering with HTML table
         centered_html = recent_tbl.to_html(
             index=False,
             justify="center",
@@ -146,9 +134,7 @@ if ticker:
 
         st.markdown(centered_html, unsafe_allow_html=True)
 
-        # ---------------------------------------------------------
-        # 📥 CSV Export
-        # ---------------------------------------------------------
+        
         csv_data = recent_tbl.to_csv(index=False).encode("utf-8")
         st.download_button(
             label="📥 Download Earnings Data (CSV)",
@@ -157,9 +143,7 @@ if ticker:
             mime="text/csv",
         )
 
-        # ---------------------------------------------------------
-        # 📈 Surprise Bar Chart
-        # ---------------------------------------------------------
+        
         chart = (
             alt.Chart(recent_tbl)
             .mark_bar()
