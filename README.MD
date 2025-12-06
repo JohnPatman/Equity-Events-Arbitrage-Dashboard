@@ -66,5 +66,7 @@ Modular architecture, data scraping, API integration, input validation, state ma
 Arbitrage logic, forward-FX modelling, ratio normalisation, time-series interpretation, and structured data pipelines.
 
 Created by:
+
 John Patman
+
 Corporate Actions Specialist | CFA Level 1 Candidate
