@@ -16,9 +16,6 @@ This dashboard is built for dividend arbitrage practitioners,
 especially those analysing scrip events and non-cash dividend alternatives.
 """)
 
-# ======================================================================
-# 🔵 UNIVERSAL LIGHT-BLUE INPUT STYLING
-# ======================================================================
 st.markdown("""
 <style>
 
@@ -76,9 +73,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ======================================================================
-# LOAD LATEST SCRIP DIVIDEND DATA
-# ======================================================================
 try:
     df_scrip = pd.read_csv("Data/lmp_scrip_dividends.csv")
     latest = df_scrip.iloc[0]
@@ -96,9 +90,6 @@ st.write(f"**Election Deadline:** {deadline}")
 st.write(f"**Scrip Issue Price:** {scrip_price:.2f} pence")
 
 
-# ======================================================================
-# FETCH MARKET PRICE (AUTO WITH SPLIT FIX)
-# ======================================================================
 ticker = "LMP.L"
 deadline_dt = pd.to_datetime(deadline, errors="coerce")
 market_pence = None
@@ -124,9 +115,6 @@ else:
     st.warning("Could not fetch market price.")
 
 
-# ======================================================================
-# ARBITRAGE CALCULATION
-# ======================================================================
 st.subheader("🔍 Scrip vs Cash Arbitrage")
 
 shares = st.number_input("Number of shares held", min_value=1, step=100, value=1_000_000)
@@ -158,9 +146,7 @@ st.session_state["lmp_scrip_shares"] = scrip_shares
 st.session_state["lmp_use_price"] = use_price_pence / 100.0
 
 
-# ======================================================================
-# OPTIMAL ELECTION VS LENDER
-# ======================================================================
+
 st.subheader("📌 Optimal Election vs Lender Election (Cash vs Scrip)")
 
 required = ["lmp_cash_value", "lmp_scrip_shares", "lmp_use_price"]

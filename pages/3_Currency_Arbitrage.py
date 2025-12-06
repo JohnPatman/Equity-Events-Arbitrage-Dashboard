@@ -5,10 +5,6 @@ from datetime import datetime
 from modules.arbitrage.airtel import fetch_airtel_latest
 from modules.arbitrage.fx import get_market_fx_usd_gbp
 
-# ======================================================================
-# PAGE TITLE & DESCRIPTION
-# ======================================================================
-
 st.title("🔹 Dividend FX & Arbitrage (Airtel example)")
 st.markdown("""This dashboard evaluates dividend currency arbitrage opportunities for Airtel Africa.
 
@@ -22,10 +18,6 @@ It uses the company’s published USD→GBP FX rate and compares it to live mark
 This dashboard is designed for traders, corporate action specialists,  
 and anyone analysing FX-driven dividend events in dual-currency markets.
 """)
-
-# ======================================================================
-# GLOBAL BLUE INPUT BOX STYLING
-# ======================================================================
 
 st.markdown("""
 <style>
@@ -69,11 +61,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-# ======================================================================
-# FETCH LATEST COMPANY + MARKET DATA
-# ======================================================================
-
 try:
     latest = fetch_airtel_latest()
 
@@ -86,10 +73,6 @@ try:
     rich_ccy = "GBP" if fx_company > fx_market else ("USD" if fx_company < fx_market else None)
     best_choice = rich_ccy if rich_ccy else "Either (no advantage)"
 
-    # ==================================================================
-    # TOP METRICS
-    # ==================================================================
-
     c1, c2, c3 = st.columns(3)
     with c1: st.metric("Airtel FX (USD→GBP)", f"{fx_company:.4f}")
     with c2: st.metric("Market FX (USD→GBP)", f"{fx_market:.4f}")
@@ -101,10 +84,6 @@ try:
         st.success(f"📌 FX advantage detected — elect **{best_choice}**")
     else:
         st.info("⚖ No FX arbitrage detected.")
-
-    # ==================================================================
-    # DIVIDEND DETAILS TABLE (NO INDEX, CLEAN WIDTHS)
-    # ==================================================================
 
     st.subheader("Dividend Details")
 
@@ -154,11 +133,6 @@ try:
 except Exception as e:
     st.error(f"Failed to load Airtel data: {e}")
     st.stop()
-
-
-# ======================================================================
-# 📦 BORROW–ARBITRAGE
-# ======================================================================
 
 st.header("📦 Borrow-Arbitrage (Lender vs Your Election)")
 
@@ -211,11 +185,6 @@ elif profit < 0:
 else:
     st.info("⚖ Zero arbitrage — identical economics.")
 
-
-# ======================================================================
-# 📌 OPTIMAL ELECTION
-# ======================================================================
-
 st.header("📌 Optimal Dividend Currency Election")
 
 if lender_election == "USD":
@@ -239,11 +208,6 @@ else:
     else:
         diff = (elect_gbp / elect_usd - 1) * 100
         st.success(f"📈 Given lender = GBP → Elect **GBP** (+{diff:.2f}%)")
-
-
-# ======================================================================
-# 🔐 FORWARD HEDGE
-# ======================================================================
 
 st.header("🔐 Forward Hedge Impact")
 
@@ -277,11 +241,6 @@ else:
             pct = (gbp_forward / gbp_owed - 1) * 100
             st.metric("Hedged Return %", f"{pct:.2f}%")
             st.write(f"Hedged P&L: **£{profit_fwd:,.2f}**")
-
-
-# ======================================================================
-# 📈 FX STRESS TEST
-# ======================================================================
 
 st.header("📈 Market FX Stress Test")
 
