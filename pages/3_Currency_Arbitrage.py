@@ -193,10 +193,10 @@ if lender_election == "USD":
 
     if elect_gbp > elect_usd:
         diff = (elect_gbp / elect_usd - 1) * 100
-        st.success(f"📈 Given lender = USD → Elect **GBP** (+{diff:.2f}%)")
+        st.success(f"Given lender = USD → Elect **GBP** (+{diff:.2f}%)")
     else:
         diff = (elect_usd / elect_gbp - 1) * 100
-        st.success(f"📈 Given lender = USD → Elect **USD** (+{diff:.2f}%)")
+        st.success(f"Given lender = USD → Elect **USD** (+{diff:.2f}%)")
 
 else:
     elect_gbp = usd_div * shares * fx_company
@@ -204,10 +204,10 @@ else:
 
     if elect_usd > elect_gbp:
         diff = (elect_usd / elect_gbp - 1) * 100
-        st.success(f"📈 Given lender = GBP → Elect **USD** (+{diff:.2f}%)")
+        st.success(f"Given lender = GBP → Elect **USD** (+{diff:.2f}%)")
     else:
         diff = (elect_gbp / elect_usd - 1) * 100
-        st.success(f"📈 Given lender = GBP → Elect **GBP** (+{diff:.2f}%)")
+        st.success(f"Given lender = GBP → Elect **GBP** (+{diff:.2f}%)")
 
 st.header("Forward Hedge Impact")
 
