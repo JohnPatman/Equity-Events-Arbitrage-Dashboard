@@ -242,7 +242,7 @@ else:
             st.metric("Hedged Return %", f"{pct:.2f}%")
             st.write(f"Hedged P&L: **£{profit_fwd:,.2f}**")
 
-st.header("Market FX Stress Test")
+st.header("FX Override & Scenario Test")
 
 min_fx = round(fx_market * 0.90, 4)
 max_fx = round(fx_market * 1.10, 4)

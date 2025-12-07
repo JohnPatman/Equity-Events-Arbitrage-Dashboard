@@ -12,13 +12,13 @@ https://equity-events-arbitrage-dashboard-byv5jedymv77prgu9fg3jz.streamlit.app/
 
 Features:
 1. Upcoming UK Dividend Events
-Fetches company investor-relations announcements and builds a forward dividend calendar for major UK blue-chip stocks. Dates and declared amounts are standardised, and uncertainty is flagged where appropriate.
+Fetches company investor-relations announcements and builds a forward dividend calendar for major UK stocks. Dates and declared amounts are standardised, and uncertainty is flagged where appropriate.
 
 2. Dividend Growth Model
 Analyses fifteen years of dividend history. Highlights annual increases and decreases to show long-term payout behaviour and stability.
 
-3. Currency Arbitrage (Airtel Africa)
-Evaluates dividend currency election opportunities by comparing the company’s published FX rate with live market FX. Includes borrow-arbitrage modelling, forward-FX hedging, and an FX stress-testing tool.
+3. Currency Arbitrage
+Evaluates dividend currency election opportunities by comparing the company’s published FX rate with live market FX. Includes borrow-arbitrage modelling, forward-FX hedging, and a FX Override & Scenario Test.
 
 4. ADR vs Local Share Arbitrage
 Normalises local share prices into ADR terms using FX and conversion ratios. Identifies deviations between ADR and local listings and highlights potential arbitrage opportunities.
@@ -52,8 +52,10 @@ Data Sources:
 Skills Demonstrated:
 1. Financial modelling
 Dividend forecasting, FX parity analysis, ADR conversion, earnings surprise analysis, valuation modelling.
+
 2. Software engineering
 Modular architecture, data scraping, API integration, input validation, state management, and production deployment using Streamlit Cloud.
+
 3. Quantitative analysis
 Arbitrage logic, forward-FX modelling, ratio normalisation, time-series interpretation, and structured data pipelines.
 
@@ -62,4 +64,3 @@ Created by:
 John Patman
 
 Corporate Actions Specialist | CFA Level 1 Candidate
-
