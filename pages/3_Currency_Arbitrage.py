@@ -179,9 +179,9 @@ with cB: st.metric("You Receive", f"{sym}{eff:,.2f}")
 with cC: st.metric("Profit / Loss", f"{sym}{profit:,.2f}")
 
 if profit > 0:
-    st.success(f"📈 Arbitrage Profit: {sym}{profit:,.2f}")
+    st.success(f"Arbitrage Profit: {sym}{profit:,.2f}")
 elif profit < 0:
-    st.error(f"📉 Loss: {sym}{profit:,.2f}")
+    st.error(f"Loss: {sym}{profit:,.2f}")
 else:
     st.info("⚖ Zero arbitrage — identical economics.")
 
