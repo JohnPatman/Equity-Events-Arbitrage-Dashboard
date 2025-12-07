@@ -60,9 +60,9 @@ def display_adr_block(name, result):
         )
 
     if arb_pct > 0:
-        st.error(f"📉 {rec}")
+        st.error(f"{rec}")
     elif arb_pct < 0:
-        st.success(f"📈 {rec}")
+        st.success(f"{rec}")
     else:
         st.info("⚖ Fully aligned (no arbitrage).")
 

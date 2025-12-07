@@ -183,7 +183,7 @@ if profit > 0:
 elif profit < 0:
     st.error(f"Loss: {sym}{profit:,.2f}")
 else:
-    st.info("⚖ Zero arbitrage — identical economics.")
+    st.info("Zero arbitrage — identical economics.")
 
 st.header("Optimal Dividend Currency Election")
 
