@@ -77,7 +77,7 @@ if os.path.exists(hist_path):
     st.altair_chart(final_chart, use_container_width=True)
 
     st.markdown(f"""
-    ### 📊 Dividend Growth Summary  
+    ### Dividend Growth Summary  
     • Latest dividend (2025): **£{last:.4f}**  
     • YoY Change: **{yearly['YoY %'].iloc[-1]:.2f}%**  
     • CAGR (2010–2025): **{cagr:.2f}%** annually  

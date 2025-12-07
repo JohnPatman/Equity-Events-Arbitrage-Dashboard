@@ -81,7 +81,7 @@ try:
     st.caption(f"Market FX date: **{fx_date}**")
 
     if rich_ccy:
-        st.success(f"📌 FX advantage detected — elect **{best_choice}**")
+        st.success(f"FX advantage detected — elect **{best_choice}**")
     else:
         st.info("⚖ No FX arbitrage detected.")
 
@@ -134,7 +134,7 @@ except Exception as e:
     st.error(f"Failed to load Airtel data: {e}")
     st.stop()
 
-st.header("📦 Borrow-Arbitrage (Lender vs Your Election)")
+st.header("Borrow-Arbitrage (Lender vs Your Election)")
 
 shares = st.number_input("Borrowed Shares", min_value=100, value=1000, step=100)
 lender_election = st.selectbox("Lender elects:", ["USD", "GBP"])
@@ -185,7 +185,7 @@ elif profit < 0:
 else:
     st.info("⚖ Zero arbitrage — identical economics.")
 
-st.header("📌 Optimal Dividend Currency Election")
+st.header("Optimal Dividend Currency Election")
 
 if lender_election == "USD":
     elect_usd = usd_div * shares
@@ -209,7 +209,7 @@ else:
         diff = (elect_gbp / elect_usd - 1) * 100
         st.success(f"📈 Given lender = GBP → Elect **GBP** (+{diff:.2f}%)")
 
-st.header("🔐 Forward Hedge Impact")
+st.header("Forward Hedge Impact")
 
 if rich_ccy is None:
     st.caption("No FX arbitrage detected — hedge unnecessary.")
@@ -242,7 +242,7 @@ else:
             st.metric("Hedged Return %", f"{pct:.2f}%")
             st.write(f"Hedged P&L: **£{profit_fwd:,.2f}**")
 
-st.header("📈 Market FX Stress Test")
+st.header("Market FX Stress Test")
 
 min_fx = round(fx_market * 0.90, 4)
 max_fx = round(fx_market * 1.10, 4)
