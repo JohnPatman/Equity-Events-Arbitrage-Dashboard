@@ -3,13 +3,12 @@ import pandas as pd
 
 def load_earnings(ticker):
     """
-    Robust earnings loader that works with Streamlit Cloud.
-    Uses only .earnings_dates (safe), and detects next earnings.
+    Robust earnings loader that works on Streamlit Cloud.
+    Uses only .earnings_dates (Cloud blocks the other endpoint).
     """
 
     t = yf.Ticker(ticker)
 
-    # Load earnings history
     try:
         df = t.earnings_dates
     except Exception:
@@ -20,7 +19,7 @@ def load_earnings(ticker):
 
     df = df.reset_index().rename(columns={"index": "Earnings Date"})
 
-    # Auto-detect columns
+    # detect estimate & reported EPS cols
     est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
     rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
 
@@ -34,13 +33,13 @@ def load_earnings(ticker):
 
     df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
 
-    # Surprise %
+    # surprise %
     df["Surprise(%)"] = (
         (df["Reported EPS"] - df["EPS Estimate"]) /
         df["EPS Estimate"]
     ) * 100
 
-    # Detect next earnings (future row)
+    # detect next future earnings date
     now = pd.Timestamp.utcnow()
     future_rows = df[df["Earnings Date"] > now]
 
