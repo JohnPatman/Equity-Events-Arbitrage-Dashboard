@@ -1,8 +1,8 @@
-streamlit
-pandas
-numpy
-yfinance
-altair
-requests
-beautifulsoup4
-lxml
+streamlit==1.40.0
+pandas==2.2.3
+numpy==1.26.4
+yfinance==0.2.50
+altair==5.2.0
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
