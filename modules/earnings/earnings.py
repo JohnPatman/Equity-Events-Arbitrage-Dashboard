@@ -1,58 +1,38 @@
 import yfinance as yf
 import pandas as pd
 
-
 def load_earnings(ticker):
     """
-    Fully robust earnings loader for both localhost and Streamlit Cloud.
-    - Uses .earnings_dates when available.
-    - Falls back to quarterly earnings when needed.
-    - Standardises date column naming.
-    - Computes surprise %, beat rate, and forward EPS estimate.
+    UNIVERSAL earnings loader:
+    - Tries get_earnings() (works on Streamlit Cloud)
+    - If unavailable (local newer yfinance), falls back to earnings_dates
+    - Normalises structure for both sources
     """
 
     t = yf.Ticker(ticker)
-
-    # =====================================
-    # 1) Try PRIMARY endpoint: earnings_dates
-    # =====================================
     df = None
+
+    # 1) Try get_earnings() → works on Cloud
     try:
-        df = t.earnings_dates
-    except Exception:
+        df = t.get_earnings()
+    except:
         df = None
 
-    # If primary endpoint fails or empty → fallback
+    # 2) If local yfinance doesn't support get_earnings() → use earnings_dates
     if df is None or df.empty:
         try:
-            df = t.quarterly_earnings  # fallback
-        except Exception:
-            return None, None
+            df = t.earnings_dates
+        except:
+            df = None
 
-        if df is None or df.empty:
-            return None, None
-
-        df = df.reset_index()
-
-    else:
-        df = df.reset_index()
-
-    # =====================================
-    # 2) Detect and normalise date column
-    # =====================================
-    possible_date_cols = ["Earnings Date", "Earnings_Date", "Date", "index", "earningsDate"]
-    date_col = next((c for c in possible_date_cols if c in df.columns), None)
-
-    if date_col is None:
+    if df is None or df.empty:
         return None, None
 
-    df = df.rename(columns={date_col: "Earnings Date"})
-
+    # Normalise structure
+    df = df.reset_index().rename(columns={"index": "Earnings Date"})
     df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
 
-    # =====================================
-    # 3) Detect EPS estimate & reported EPS columns
-    # =====================================
+    # Detect EPS columns
     est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
     rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
 
@@ -64,41 +44,34 @@ def load_earnings(ticker):
         rep_col: "Reported EPS"
     })
 
-    # Ensure numeric
+    # Numeric clean
     df["EPS Estimate"] = pd.to_numeric(df["EPS Estimate"], errors="coerce")
     df["Reported EPS"] = pd.to_numeric(df["Reported EPS"], errors="coerce")
 
-    # =====================================
-    # 4) Surprise %
-    # =====================================
+    # Surprise %
     df["Surprise(%)"] = (
         (df["Reported EPS"] - df["EPS Estimate"]) /
         df["EPS Estimate"]
     ) * 100
 
-    # =====================================
-    # 5) Detect next future earnings date
-    # =====================================
+    # Detect next future earnings
     now = pd.Timestamp.utcnow()
-    future_rows = df[df["Earnings Date"] > now]
+    future = df[df["Earnings Date"] > now]
 
-    if not future_rows.empty:
-        next_row = future_rows.sort_values("Earnings Date").iloc[0]
-        next_date = next_row["Earnings Date"]
-        next_eps  = next_row["EPS Estimate"]
+    if not future.empty:
+        nxt = future.sort_values("Earnings Date").iloc[0]
+        next_date = nxt["Earnings Date"]
+        next_eps = nxt["EPS Estimate"]
     else:
         next_date = None
         next_eps = None
 
-    # =====================================
-    # 6) Stats summary
-    # =====================================
     stats = {
         "next_date": next_date,
         "next_eps": next_eps,
         "avg_surprise": df["Surprise(%)"].mean(),
         "std_surprise": df["Surprise(%)"].std(),
-        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100,
+        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100
     }
 
     return df, stats
