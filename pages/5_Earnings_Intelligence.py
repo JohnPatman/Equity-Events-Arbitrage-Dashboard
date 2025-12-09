@@ -21,35 +21,33 @@ Enter US Earnings Ticker (e.g. AAPL, MSFT, NVDA):
 </span>
 """, unsafe_allow_html=True)
 
-ticker = st.text_input("", value="AAPL").strip().upper()
+ticker = st.text_input("Ticker", value="AAPL").strip().upper()
 
 
+# =========================================================
+# LOAD DATA
+# =========================================================
 if ticker:
 
     df_earn, stats_earn = load_earnings(ticker)
 
-    # --- If the module returns nothing ---
+    # If data missing → stop here
     if df_earn is None or df_earn.empty:
         st.warning(f"No earnings data available for {ticker}.")
         st.stop()
 
-    # --- Standardise column names ---
-    df_earn = df_earn.rename(columns={
-        "Earnings_Date": "Earnings Date",
-        "Date": "Earnings Date"
-    })
-
+    # Ensure date column is parsed
     df_earn["Earnings Date"] = pd.to_datetime(df_earn["Earnings Date"], errors="coerce")
 
-    # --- Historical rows (Reported EPS not null) ---
+    # Keep rows with reported EPS
     hist = df_earn[df_earn["Reported EPS"].notna()].copy()
     if hist.empty:
         st.warning(f"{ticker} has no reported earnings history.")
         st.stop()
 
-    # =======================
+    # =========================================================
     # METRICS
-    # =======================
+    # =========================================================
 
     c1, c2, c3 = st.columns(3)
 
@@ -65,14 +63,16 @@ if ticker:
     with c2:
         st.metric("Consensus EPS (Next)", next_eps_fmt)
 
+    # Beat rate
     beat_rate = stats_earn.get("beat_rate")
     beat_rate_fmt = f"{float(beat_rate):.1f}%" if beat_rate else "N/A"
     with c3:
         st.metric("Beat Rate (%)", beat_rate_fmt)
 
-    # =======================
-    # Surprise stats
-    # =======================
+    # =========================================================
+    # SURPRISE STATS
+    # =========================================================
+
     avg_s = stats_earn.get("avg_surprise")
     std_s = stats_earn.get("std_surprise")
 
@@ -80,10 +80,10 @@ if ticker:
     st.write(f"- Average surprise: **{float(avg_s):.2f}%**" if avg_s is not None else "- Average surprise: N/A")
     st.write(f"- Surprise volatility (stdev): **{float(std_s):.2f} ppts**" if std_s is not None else "- Surprise volatility: N/A")
 
+    # =========================================================
+    # RECENT TABLE
+    # =========================================================
 
-    # =======================
-    # Recent table
-    # =======================
     st.subheader("Recent Reported Quarters")
 
     recent = hist.sort_values("Earnings Date").tail(6).copy()
@@ -95,13 +95,12 @@ if ticker:
         "Surprise(%)"
     ]].copy()
 
-    # Formatting
     recent_tbl["Earnings Date"] = recent_tbl["Earnings Date"].dt.strftime("%Y-%m-%d")
     recent_tbl["EPS Estimate"] = recent_tbl["EPS Estimate"].round(2)
     recent_tbl["Reported EPS"] = recent_tbl["Reported EPS"].round(2)
     recent_tbl["Surprise(%)"] = recent_tbl["Surprise(%)"].round(2)
 
-    # Center table
+    # Centering
     st.markdown("""
     <style>
         table.centered-table th, table.centered-table td {
@@ -115,7 +114,7 @@ if ticker:
         unsafe_allow_html=True
     )
 
-    # CSV
+    # CSV download
     csv_data = recent_tbl.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Download Earnings Data (CSV)",
@@ -124,10 +123,9 @@ if ticker:
         mime="text/csv",
     )
 
-
-    # =======================
-    # Surprise Chart
-    # =======================
+    # =========================================================
+    # SURPRISE CHART
+    # =========================================================
 
     chart = (
         alt.Chart(recent_tbl)

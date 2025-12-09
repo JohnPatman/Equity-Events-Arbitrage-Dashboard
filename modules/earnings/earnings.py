@@ -3,50 +3,33 @@ import pandas as pd
 
 def load_earnings(ticker):
     """
-    UNIVERSAL earnings loader:
-    - Tries get_earnings() (works on Streamlit Cloud)
-    - If unavailable (local newer yfinance), falls back to earnings_dates
-    - Normalises structure for both sources
+    Reliable earnings loader for localhost + Streamlit Cloud.
+    Uses get_earnings_dates(), which returns a full table
+    with EPS Estimate, Reported EPS, Surprise(%), and date index.
     """
 
     t = yf.Ticker(ticker)
-    df = None
 
-    # 1) Try get_earnings() → works on Cloud
+    # 1) Use the reliable endpoint
     try:
-        df = t.get_earnings()
-    except:
-        df = None
+        df = t.get_earnings_dates()
+    except Exception:
+        return None, None
 
-    # 2) If local yfinance doesn't support get_earnings() → use earnings_dates
-    if df is None or df.empty:
-        try:
-            df = t.earnings_dates
-        except:
-            df = None
-
+    # Abort if empty
     if df is None or df.empty:
         return None, None
 
-    # Normalise structure
+    # Reset index → make date into a column
     df = df.reset_index().rename(columns={"index": "Earnings Date"})
+
+    # Convert dates
     df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
 
-    # Detect EPS columns
-    est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
-    rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
-
-    if not est_col or not rep_col:
+    # Ensure required columns
+    required = ["EPS Estimate", "Reported EPS"]
+    if not all(col in df.columns for col in required):
         return None, None
-
-    df = df.rename(columns={
-        est_col: "EPS Estimate",
-        rep_col: "Reported EPS"
-    })
-
-    # Numeric clean
-    df["EPS Estimate"] = pd.to_numeric(df["EPS Estimate"], errors="coerce")
-    df["Reported EPS"] = pd.to_numeric(df["Reported EPS"], errors="coerce")
 
     # Surprise %
     df["Surprise(%)"] = (
@@ -54,24 +37,25 @@ def load_earnings(ticker):
         df["EPS Estimate"]
     ) * 100
 
-    # Detect next future earnings
+    # 2) Detect NEXT earnings date (future row)
     now = pd.Timestamp.utcnow()
     future = df[df["Earnings Date"] > now]
 
     if not future.empty:
-        nxt = future.sort_values("Earnings Date").iloc[0]
-        next_date = nxt["Earnings Date"]
-        next_eps = nxt["EPS Estimate"]
+        next_row = future.sort_values("Earnings Date").iloc[0]
+        next_date = next_row["Earnings Date"]
+        next_eps  = next_row["EPS Estimate"]
     else:
         next_date = None
-        next_eps = None
+        next_eps  = None
 
+    # 3) Stats summary
     stats = {
         "next_date": next_date,
         "next_eps": next_eps,
         "avg_surprise": df["Surprise(%)"].mean(),
         "std_surprise": df["Surprise(%)"].std(),
-        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100
+        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100,
     }
 
     return df, stats
