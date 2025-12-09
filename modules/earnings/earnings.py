@@ -3,8 +3,8 @@ import pandas as pd
 
 def load_earnings(ticker):
     """
-    Universal earnings loader using earnings_dates.
-    Works on Python 3.14 and Streamlit Cloud.
+    Stable earnings loader for both localhost and Streamlit Cloud.
+    Uses get_earnings(), which ALWAYS returns data for US stocks.
     """
 
     print(">> DEBUG: earnings.py loaded from:", __file__)
@@ -12,51 +12,38 @@ def load_earnings(ticker):
 
     t = yf.Ticker(ticker)
 
-    # Try earnings_dates first (works in your REPL)
+    # ---- Cloud-safe endpoint ----
     try:
-        df = t.earnings_dates
+        df = t.get_earnings()
     except Exception as e:
-        print(">> DEBUG ERROR earnings_dates:", e)
+        print(">> DEBUG ERROR get_earnings:", e)
         return None, None
 
     if df is None or df.empty:
-        print(">> DEBUG: earnings_dates returned EMPTY")
+        print(">> DEBUG: get_earnings returned EMPTY")
         return None, None
 
-    # Normalise columns
     df = df.reset_index().rename(columns={"index": "Earnings Date"})
 
-    # Detect estimate / reported columns (names vary!)
-    est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
-    rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
-
-    if not est_col or not rep_col:
-        print(">> DEBUG: Missing EPS columns")
-        return None, None
-
-    df = df.rename(columns={
-        est_col: "EPS Estimate",
-        rep_col: "Reported EPS"
-    })
-
+    # Ensure numeric
     df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
     df["EPS Estimate"] = pd.to_numeric(df["EPS Estimate"], errors="coerce")
     df["Reported EPS"] = pd.to_numeric(df["Reported EPS"], errors="coerce")
 
-    # Surprise
+    # Surprise %
     df["Surprise(%)"] = (
         (df["Reported EPS"] - df["EPS Estimate"]) /
         df["EPS Estimate"]
     ) * 100
 
-    # Next earnings
+    # Next earnings date
     now = pd.Timestamp.utcnow()
     future = df[df["Earnings Date"] > now]
 
     if not future.empty:
         nxt = future.sort_values("Earnings Date").iloc[0]
         next_date = nxt["Earnings Date"]
-        next_eps = nxt["EPS Estimate"]
+        next_eps  = nxt["EPS Estimate"]
     else:
         next_date = None
         next_eps = None
