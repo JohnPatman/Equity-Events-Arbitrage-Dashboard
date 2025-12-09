@@ -1,55 +1,56 @@
 import yfinance as yf
 import pandas as pd
 
+
 def load_earnings(ticker):
     """
-    Reliable earnings loader for localhost + Streamlit Cloud.
-    Uses get_earnings_dates(), which returns a full table
-    with EPS Estimate, Reported EPS, Surprise(%), and date index.
+    FINAL STABLE VERSION — works on Streamlit Cloud.
+    Uses ONLY quarterly_earnings, which Cloud allows.
     """
 
     t = yf.Ticker(ticker)
 
-    # 1) Use the reliable endpoint
+    # 1) Load quarterly earnings (Cloud-safe endpoint)
     try:
-        df = t.get_earnings_dates()
+        df = t.quarterly_earnings
     except Exception:
         return None, None
 
-    # Abort if empty
     if df is None or df.empty:
         return None, None
 
-    # Reset index → make date into a column
+    # 2) Format DataFrame
     df = df.reset_index().rename(columns={"index": "Earnings Date"})
 
-    # Convert dates
+    # Make sure date column is datetime
     df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
 
-    # Ensure required columns
-    required = ["EPS Estimate", "Reported EPS"]
-    if not all(col in df.columns for col in required):
+    # 3) Ensure required EPS columns exist
+    if "EPS Estimate" not in df.columns or "Reported EPS" not in df.columns:
         return None, None
 
-    # Surprise %
+    # Convert to numeric
+    df["EPS Estimate"] = pd.to_numeric(df["EPS Estimate"], errors="coerce")
+    df["Reported EPS"] = pd.to_numeric(df["Reported EPS"], errors="coerce")
+
+    # 4) Surprise %
     df["Surprise(%)"] = (
-        (df["Reported EPS"] - df["EPS Estimate"]) /
-        df["EPS Estimate"]
+        (df["Reported EPS"] - df["EPS Estimate"]) / df["EPS Estimate"]
     ) * 100
 
-    # 2) Detect NEXT earnings date (future row)
+    # 5) Next earnings date = MAX future date
     now = pd.Timestamp.utcnow()
     future = df[df["Earnings Date"] > now]
 
     if not future.empty:
         next_row = future.sort_values("Earnings Date").iloc[0]
         next_date = next_row["Earnings Date"]
-        next_eps  = next_row["EPS Estimate"]
+        next_eps = next_row["EPS Estimate"]
     else:
         next_date = None
-        next_eps  = None
+        next_eps = None
 
-    # 3) Stats summary
+    # 6) Summary stats
     stats = {
         "next_date": next_date,
         "next_eps": next_eps,
