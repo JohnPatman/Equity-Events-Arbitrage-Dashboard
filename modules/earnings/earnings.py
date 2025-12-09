@@ -3,59 +3,71 @@ import pandas as pd
 
 def load_earnings(ticker):
     """
-    Reliable earnings loader for localhost + Streamlit Cloud.
-    Uses get_earnings_dates(), which returns a full table
-    with EPS Estimate, Reported EPS, Surprise(%), and date index.
+    Universal earnings loader using earnings_dates.
+    Works on Python 3.14 and Streamlit Cloud.
     """
+
+    print(">> DEBUG: earnings.py loaded from:", __file__)
+    print(">> DEBUG: loading ticker:", ticker)
 
     t = yf.Ticker(ticker)
 
-    # 1) Use the reliable endpoint
+    # Try earnings_dates first (works in your REPL)
     try:
-        df = t.get_earnings_dates()
-    except Exception:
+        df = t.earnings_dates
+    except Exception as e:
+        print(">> DEBUG ERROR earnings_dates:", e)
         return None, None
 
-    # Abort if empty
     if df is None or df.empty:
+        print(">> DEBUG: earnings_dates returned EMPTY")
         return None, None
 
-    # Reset index → make date into a column
+    # Normalise columns
     df = df.reset_index().rename(columns={"index": "Earnings Date"})
 
-    # Convert dates
-    df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
+    # Detect estimate / reported columns (names vary!)
+    est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
+    rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
 
-    # Ensure required columns
-    required = ["EPS Estimate", "Reported EPS"]
-    if not all(col in df.columns for col in required):
+    if not est_col or not rep_col:
+        print(">> DEBUG: Missing EPS columns")
         return None, None
 
-    # Surprise %
+    df = df.rename(columns={
+        est_col: "EPS Estimate",
+        rep_col: "Reported EPS"
+    })
+
+    df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
+    df["EPS Estimate"] = pd.to_numeric(df["EPS Estimate"], errors="coerce")
+    df["Reported EPS"] = pd.to_numeric(df["Reported EPS"], errors="coerce")
+
+    # Surprise
     df["Surprise(%)"] = (
         (df["Reported EPS"] - df["EPS Estimate"]) /
         df["EPS Estimate"]
     ) * 100
 
-    # 2) Detect NEXT earnings date (future row)
+    # Next earnings
     now = pd.Timestamp.utcnow()
     future = df[df["Earnings Date"] > now]
 
     if not future.empty:
-        next_row = future.sort_values("Earnings Date").iloc[0]
-        next_date = next_row["Earnings Date"]
-        next_eps  = next_row["EPS Estimate"]
+        nxt = future.sort_values("Earnings Date").iloc[0]
+        next_date = nxt["Earnings Date"]
+        next_eps = nxt["EPS Estimate"]
     else:
         next_date = None
-        next_eps  = None
+        next_eps = None
 
-    # 3) Stats summary
     stats = {
         "next_date": next_date,
         "next_eps": next_eps,
         "avg_surprise": df["Surprise(%)"].mean(),
         "std_surprise": df["Surprise(%)"].std(),
-        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100,
+        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100
     }
 
+    print(">> DEBUG: SUCCESS — returning", len(df), "rows")
     return df, stats
