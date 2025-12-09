@@ -3,14 +3,13 @@ import pandas as pd
 
 def load_earnings(ticker):
     """
-    Robust earnings loader that works on Streamlit Cloud.
-    Avoids .get_earnings_dates() which Cloud blocks.
-    Uses only .earnings_dates and auto-detects the next earnings row.
+    Robust earnings loader that works with Streamlit Cloud.
+    Uses only .earnings_dates (safe), and detects next earnings.
     """
 
     t = yf.Ticker(ticker)
 
-    # ----- Load earnings history -----
+    # Load earnings history
     try:
         df = t.earnings_dates
     except Exception:
@@ -21,8 +20,7 @@ def load_earnings(ticker):
 
     df = df.reset_index().rename(columns={"index": "Earnings Date"})
 
-    # auto-detect column names
-    date_col = "Earnings Date"
+    # Auto-detect columns
     est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
     rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
 
@@ -42,9 +40,8 @@ def load_earnings(ticker):
         df["EPS Estimate"]
     ) * 100
 
-    # ---- Detect NEXT earnings date (future-dated row) ----
+    # Detect next earnings (future row)
     now = pd.Timestamp.utcnow()
-
     future_rows = df[df["Earnings Date"] > now]
 
     if not future_rows.empty:
@@ -60,7 +57,7 @@ def load_earnings(ticker):
         "next_eps": next_eps,
         "avg_surprise": df["Surprise(%)"].mean(),
         "std_surprise": df["Surprise(%)"].std(),
-        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100
+        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100,
     }
 
     return df, stats
