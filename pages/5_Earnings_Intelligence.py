@@ -11,7 +11,7 @@ from modules.earnings.earnings import load_earnings
 st.title("🔹 Earnings Intelligence – Surprise Analysis")
 
 st.markdown("""
-This dashboard analyses earnings surprise behaviour for US equities using **locally stored S&P 100 earnings CSVs**.
+This dashboard analyses earnings surprise behaviour for US equities using locally stored S&P 100 earnings CSVs.
 
 It:
 
