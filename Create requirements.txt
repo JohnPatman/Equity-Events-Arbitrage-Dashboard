@@ -6,3 +6,4 @@ altair
 requests
 beautifulsoup4
 lxml
+plotly
