@@ -1,68 +1,65 @@
-import yfinance as yf
 import pandas as pd
+import os
+
+DATA_DIR = "Data/earnings"
 
 def load_earnings(ticker):
     """
-    Stable earnings loader using earnings_dates.
-    Works on Python 3.14 and Streamlit Cloud.
+    Load earnings data from static CSV produced by fetch_earnings.py.
+    Returns (df, stats) where stats always contains all required keys.
     """
 
-    t = yf.Ticker(ticker)
+    path = os.path.join(DATA_DIR, f"{ticker}.csv")
 
-    # Try earnings_dates (best data source)
-    try:
-        df = t.earnings_dates
-    except Exception:
-        return None, None
+    if not os.path.exists(path):
+        return None, {
+            "next_date": None,
+            "next_eps": None,
+            "avg_surprise": None,
+            "std_surprise": None,
+            "beat_rate": None,
+        }
 
-    if df is None or df.empty:
-        return None, None
+    df = pd.read_csv(path)
 
-    # Reset index -> create column "Earnings Date"
-    df = df.reset_index().rename(columns={"index": "Earnings Date"})
+    # Parse dates
+    if "Earnings Date" in df.columns:
+        df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
+    else:
+        df["Earnings Date"] = pd.NaT
 
-    # Detect EPS estimate and EPS reported columns
-    est_col = next((c for c in df.columns if "estimate" in c.lower()), None)
-    rep_col = next((c for c in df.columns if "reported" in c.lower()), None)
+    # Numeric conversion
+    for col in ["EPS Estimate", "Reported EPS", "Surprise(%)"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    if not est_col or not rep_col:
-        return None, None
+    # Identify reported rows only (these count as "history")
+    hist = df[df["Reported EPS"].notna()].copy()
 
-    df = df.rename(columns={
-        est_col: "EPS Estimate",
-        rep_col: "Reported EPS"
-    })
+    # Compute stats safely
+    avg_surprise = hist["Surprise(%)"].mean() if not hist.empty else None
+    std_surprise = hist["Surprise(%)"].std() if not hist.empty else None
+    beat_rate = (hist["Surprise(%)"] > 0).mean() * 100 if not hist.empty else None
 
-    # Datatypes
-    df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
-    df["EPS Estimate"] = pd.to_numeric(df["EPS Estimate"], errors="coerce")
-    df["Reported EPS"] = pd.to_numeric(df["Reported EPS"], errors="coerce")
-
-    # Surprise %
-    df["Surprise(%)"] = (
-        (df["Reported EPS"] - df["EPS Estimate"]) /
-        df["EPS Estimate"]
-    ) * 100
-
-    # Detect next earnings date (future)
+    # Detect future earnings (if any exist)
     now = pd.Timestamp.utcnow()
-    future = df[df["Earnings Date"] > now]
 
+    future = df[(df["Earnings Date"].notna()) & (df["Earnings Date"] > now)]
     if not future.empty:
-        next_row = future.sort_values("Earnings Date").iloc[0]
-        next_date = next_row["Earnings Date"]
-        next_eps = next_row["EPS Estimate"]
+        nxt = future.sort_values("Earnings Date").iloc[0]
+        next_date = nxt["Earnings Date"]
+        next_eps = nxt["EPS Estimate"]
     else:
         next_date = None
         next_eps = None
 
-    # Summary stats
+    # ALWAYS return these keys — never missing
     stats = {
         "next_date": next_date,
         "next_eps": next_eps,
-        "avg_surprise": df["Surprise(%)"].mean(),
-        "std_surprise": df["Surprise(%)"].std(),
-        "beat_rate": (df["Surprise(%)"] > 0).mean() * 100,
+        "avg_surprise": float(avg_surprise) if avg_surprise is not None else None,
+        "std_surprise": float(std_surprise) if std_surprise is not None else None,
+        "beat_rate": float(beat_rate) if beat_rate is not None else None,
     }
 
     return df, stats
