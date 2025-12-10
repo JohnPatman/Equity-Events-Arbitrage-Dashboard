@@ -3,51 +3,63 @@ import pandas as pd
 import altair as alt
 from modules.earnings.earnings import load_earnings
 
+# ============================
+# S&P 100 DROPDOWN TICKERS
+# ============================
+SP100_TICKERS = [
+    "AAPL","MSFT","AMZN","NVDA","GOOGL","GOOG","META","TSLA","BRK-B","UNH",
+    "XOM","JNJ","JPM","V","AVGO","LLY","PG","CVX","HD","MA","MRK","ABBV","PEP",
+    "PFE","KO","COST","TMO","WMT","MCD","BAC","DIS","CSCO","ORCL","ABT","DHR",
+    "CRM","ACN","CVS","LIN","QCOM","TXN","NEE","UNP","PM","AMD","BMY","MS",
+    "RTX","UPS","AMT","INTC","BLK","LOW","SCHW","CAT","AMAT","MDT","GS","NOW",
+    "BKNG","ADBE","AXP","T","DE","ISRG","VRTX","C","SPGI","SYK","MDLZ","ADI",
+    "MU","REGN","ELV","LRCX","COP","MMC","GILD","NFLX","LMT","FDX","KLAC",
+    "ZTS","HON","EQIX","MAR","APD","WM","CTAS","SO","PANW","CSX","NSC",
+    "ICE","ADP","BDX","PGR","AON","AEP","ETN"
+]
+
 st.title("🔹 Earnings Intelligence – Surprise Analysis")
 
 st.markdown("""
-This dashboard analyses earnings surprise behaviour for US equities using **static CSV data**.
+This dashboard analyses earnings surprise behaviour for US equities using **locally stored S&P 100 earnings CSVs**.
 
-It automatically:
+It:
 - loads historical EPS estimates and reported results,
 - calculates surprise percentages and volatility,
-- displays beat rate statistics,
-- shows next earnings and forward consensus (if available),
-- visualises recent surprise history with clear bar charts.
+- displays beat rate,
+- shows upcoming earnings date & consensus estimate (if available),
+- visualises the last 6 quarters with bar charts.
 """)
 
-# -----------------------------
-# TICKER INPUT
-# -----------------------------
-ticker = st.text_input("Ticker", value="AAPL").strip().upper()
-if not ticker:
-    st.stop()
+# ============================
+# SELECTBOX INSTEAD OF TEXT INPUT
+# ============================
+ticker = st.selectbox(
+    "Select S&P 100 Company",
+    options=SP100_TICKERS,
+    index=0
+)
 
-# -----------------------------
-# LOAD STATIC CSV DATA
-# -----------------------------
+# Load data
 df_earn, stats_earn = load_earnings(ticker)
 
 if df_earn is None or df_earn.empty:
-    st.warning(f"No earnings data found for {ticker}. Make sure Data/earnings/{ticker}.csv exists.")
+    st.warning(f"No earnings data available for {ticker}.")
     st.stop()
 
-# Format dates
 df_earn["Earnings Date"] = pd.to_datetime(df_earn["Earnings Date"], errors="coerce")
-
-# Only completed quarters
 hist = df_earn[df_earn["Reported EPS"].notna()].copy()
 if hist.empty:
-    st.warning(f"{ticker} has no reported earnings history.")
+    st.warning(f"{ticker} has no completed earnings history.")
     st.stop()
 
-# -----------------------------
+# ============================
 # METRICS
-# -----------------------------
+# ============================
 c1, c2, c3 = st.columns(3)
 
 next_dt = stats_earn.get("next_date")
-next_dt_fmt = next_dt.strftime("%d %b %Y") if next_dt is not None else "N/A"
+next_dt_fmt = next_dt.strftime("%d %b %Y") if pd.notna(next_dt) else "N/A"
 c1.metric("Next Earnings Date", next_dt_fmt)
 
 next_eps = stats_earn.get("next_eps")
@@ -58,60 +70,43 @@ beat_rate = stats_earn.get("beat_rate")
 beat_rate_fmt = f"{beat_rate:.1f}%" if beat_rate is not None else "N/A"
 c3.metric("Beat Rate (%)", beat_rate_fmt)
 
-# -----------------------------
-# SURPRISE STATISTICS
-# -----------------------------
+# ============================
+# SURPRISE STATS
+# ============================
 st.subheader("Surprise Statistics")
+st.write(f"- Average surprise: **{stats_earn['avg_surprise']:.2f}%**")
+st.write(f"- Surprise volatility (stdev): **{stats_earn['std_surprise']:.2f} ppts**")
 
-avg_s = stats_earn.get("avg_surprise")
-std_s = stats_earn.get("std_surprise")
-
-st.write(f"- **Average surprise:** {avg_s:.2f}%" if avg_s is not None else "- **Average surprise:** N/A")
-st.write(f"- **Surprise volatility:** {std_s:.2f} ppts" if std_s is not None else "- **Surprise volatility:** N/A")
-
-# -----------------------------
-# TABLE — LAST 6 QUARTERS
-# -----------------------------
+# ============================
+# RECENT TABLE
+# ============================
 st.subheader("Recent Reported Quarters")
 
-recent = hist.sort_values("Earnings Date", ascending=False).head(6)
-recent = recent.sort_values("Earnings Date")
+recent = hist.sort_values("Earnings Date").tail(6).copy()
+recent["Earnings Date"] = recent["Earnings Date"].dt.strftime("%Y-%m-%d")
+recent["EPS Estimate"] = recent["EPS Estimate"].round(2)
+recent["Reported EPS"] = recent["Reported EPS"].round(2)
+recent["Surprise(%)"] = recent["Surprise(%)"].round(2)
 
-recent_fmt = recent.copy()
-recent_fmt["Earnings Date"] = recent_fmt["Earnings Date"].dt.strftime("%Y-%m-%d")
-recent_fmt["EPS Estimate"] = recent_fmt["EPS Estimate"].round(2)
-recent_fmt["Reported EPS"] = recent_fmt["Reported EPS"].round(2)
-recent_fmt["Surprise(%)"] = recent_fmt["Surprise(%)"].round(2)
+st.dataframe(recent, width="stretch")
 
-st.dataframe(recent_fmt, use_container_width=True)
-
-# Download CSV
-csv_data = recent_fmt.to_csv(index=False).encode("utf-8")
-st.download_button(
-    "📥 Download CSV",
-    csv_data,
-    file_name=f"{ticker}_earnings_last_6.csv",
-    mime="text/csv",
-)
-
-# -----------------------------
-# BAR CHART
-# -----------------------------
-st.subheader("Earnings Surprise – Last 6 Quarters")
-
+# ============================
+# CHART
+# ============================
 chart = (
-    alt.Chart(recent_fmt)
+    alt.Chart(recent)
     .mark_bar()
     .encode(
         x=alt.X("Earnings Date:N", title="Earnings Date"),
         y=alt.Y("Surprise(%)", title="EPS Surprise (%)"),
         tooltip=[
             "Earnings Date",
-            alt.Tooltip("EPS Estimate", format=".2f"),
-            alt.Tooltip("Reported EPS", format=".2f"),
-            alt.Tooltip("Surprise(%)", format=".2f"),
+            alt.Tooltip("EPS Estimate:Q", format=".2f"),
+            alt.Tooltip("Reported EPS:Q", format=".2f"),
+            alt.Tooltip("Surprise(%):Q", format=".2f"),
         ],
     )
 )
 
-st.altair_chart(chart, use_container_width=True)
+st.subheader("Earnings Surprise – Last 6 Quarters")
+st.altair_chart(chart, width="stretch")
