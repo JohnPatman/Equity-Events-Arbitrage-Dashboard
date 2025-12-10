@@ -1,75 +1,47 @@
-import os
+# tools/fetch_earnings.py
+import yfinance as yf
 import pandas as pd
+import os
 
-DATA_DIR = "Data/earnings"
+# S&P 100 list
+TICKERS = [
+    "AAPL","MSFT","AMZN","NVDA","GOOGL","GOOG","META","TSLA","BRK-B","UNH",
+    "XOM","JNJ","JPM","V","AVGO","LLY","PG","CVX","HD","MA",
+    "MRK","ABBV","PEP","PFE","KO","COST","TMO","WMT","MCD","BAC",
+    "DIS","CSCO","ORCL","ABT","DHR","CRM","ACN","CVS","LIN","QCOM",
+    "TXN","NEE","UNP","PM","AMD","BMY","MS","RTX","UPS","AMT",
+    "INTC","BLK","LOW","SCHW","CAT","AMAT","MDT","GS","NOW","BKNG",
+    "ADBE","AXP","T","DE","ISRG","VRTX","C","SPGI","SYK","MDLZ",
+    "ADI","MU","REGN","ELV","LRCX","COP","MMC","GILD","NFLX","LMT",
+    "FDX","KLAC","ZTS","HON","EQIX","MAR","APD","WM","CTAS","SO",
+    "PANW","CSX","NSC","ICE","ADP","BDX","PGR","AON","AEP","ETN"
+]
 
+OUTPUT_DIR = "Data/earnings"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def load_earnings_from_csv(ticker: str):
-    """
-    Loads static earnings CSV for a ticker.
-    Ensures:
-      - Correct datetime parsing
-      - Clean numeric conversion
-      - Sorted newest→oldest
-      - Surprise column calculated if missing
-    """
-
-    ticker = ticker.upper()
-    path = os.path.join(DATA_DIR, f"{ticker}.csv")
-
-    if not os.path.exists(path):
-        print(f"[ERROR] Earnings CSV not found: {path}")
-        return None, None
+def fetch_and_save(ticker):
+    print(f"\n>>> Fetching earnings_dates for {ticker}")
 
     try:
-        df = pd.read_csv(path)
+        df = yf.Ticker(ticker).earnings_dates
     except Exception as e:
-        print(f"[ERROR] Failed to read CSV for {ticker}: {e}")
-        return None, None
+        print(f"[ERROR] Failed for {ticker}: {e}")
+        return
 
-    # --- CLEANUP -------------------------------------------------------------
-    # Fix column names
-    df.columns = [c.strip() for c in df.columns]
+    if df is None or df.empty:
+        print(f"[ERROR] No earnings for {ticker}")
+        return
 
-    # Parse datetime
-    df["Earnings Date"] = pd.to_datetime(df["Earnings Date"], errors="coerce")
+    df = df.reset_index().rename(columns={"index": "Earnings Date"})
+    path = f"{OUTPUT_DIR}/{ticker}.csv"
 
-    # Numeric fields
-    for col in ["EPS Estimate", "Reported EPS", "Surprise(%)"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+    df.to_csv(path, index=False)
+    print(f"[OK] Saved {path} ({len(df)} rows)")
 
-    # If Surprise is missing, compute it
-    if "Surprise(%)" not in df.columns or df["Surprise(%)"].isna().all():
-        df["Surprise(%)"] = (
-            (df["Reported EPS"] - df["EPS Estimate"]) / df["EPS Estimate"]
-        ) * 100
 
-    # Sort newest→oldest
-    df = df.sort_values("Earnings Date", ascending=False).reset_index(drop=True)
-
-    # --- METRICS -------------------------------------------------------------
-    # Next earnings: future date (if exists)
-    now = pd.Timestamp.utcnow()
-    upcoming = df[df["Earnings Date"] > now]
-
-    next_date = upcoming["Earnings Date"].iloc[0] if not upcoming.empty else None
-    next_eps  = upcoming["EPS Estimate"].iloc[0] if not upcoming.empty else None
-
-    # Surprise stats
-    reported = df[df["Reported EPS"].notna()]
-    avg_surprise = reported["Surprise(%)"].mean()
-    std_surprise = reported["Surprise(%)"].std()
-
-    beat_rate = (reported["Surprise(%)"] > 0).mean() * 100
-
-    stats = {
-        "next_date": next_date,
-        "next_eps":  next_eps,
-        "avg_surprise": float(avg_surprise) if avg_surprise is not None else None,
-        "std_surprise": float(std_surprise) if std_surprise is not None else None,
-        "beat_rate": float(beat_rate)
-    }
-
-    print(f"[OK] Loaded {len(df)} earnings rows for {ticker}")
-    return df, stats
+if __name__ == "__main__":
+    print("\n=== Fetching S&P100 earnings ===")
+    for t in TICKERS:
+        fetch_and_save(t)
+    print("\n=== DONE ===")
