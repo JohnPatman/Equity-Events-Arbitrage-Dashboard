@@ -32,6 +32,9 @@ Models the value of cash versus scrip elections using current market prices and 
 7. Global Equity Valuation Model
 Compares valuation metrics and performance across countries using dividend yield, P/E, forward P/E, price-to-book, and multi-period returns. Includes a scoring model and a heat-mapped valuation table with CSV export.
 
+8. Country Exposure with a Mix of Funds
+Blends multiple fund allocations to generate a full country-level portfolio exposure. Scrapes geographic weights from HL factsheets, applies user-defined allocation percentages, aggregates exposures, assigns market classifications (Developed, Emerging, Frontier), and visualises results through ranked tables, bar charts, and classification breakdowns.
+
 Technical Stack:
 - Languages and Libraries
 - Python
