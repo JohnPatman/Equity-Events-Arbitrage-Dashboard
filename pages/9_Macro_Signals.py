@@ -24,7 +24,6 @@ Ideal for traders, asset allocators, and anyone following global macro condition
 """)
 
 # --------------------------- LOAD DATA ---------------------------
-st.subheader("Loading Macro Data…")
 yields = load_us_yields()
 cpi_headline, cpi_core = load_us_inflation()
 uk_cpi = load_uk_inflation()
@@ -37,7 +36,7 @@ for term in required_terms:
         st.stop()
 
 # --------------------------- YIELD CURVE ---------------------------
-st.header("📈 US Yield Curve")
+st.header("US Yield Curve")
 
 val_10y = latest_value(yields["10Y"])
 val_2y = latest_value(yields["2Y"])
@@ -143,13 +142,8 @@ st.header("Real Yields")
 # US Real Yield
 us_real_yield = compute_real_yield(val_10y, latest_cpi_yoy)
 
-# UK Real Yield (approx using same 10Y nominal until UK curve added)
-uk_nominal_10y = val_10y
-uk_real_yield = compute_real_yield(uk_nominal_10y, latest_uk_yoy)
-
 col1, col2 = st.columns(2)
 col1.metric("US 10Y Real Yield", f"{us_real_yield:.2f}%")
-col2.metric("UK 10Y Real Yield (approx)", f"{uk_real_yield:.2f}%")
 
 st.caption("""
 **Real Yield Insight:**  
