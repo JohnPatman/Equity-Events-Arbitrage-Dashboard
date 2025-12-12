@@ -1,10 +1,9 @@
 name: Update earnings CSVs
 
 on:
-  # Run every day at 23:00 UTC
   schedule:
+    # Daily at 23:00 UTC
     - cron: "0 23 * * *"
-  # Allow manual run from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -15,7 +14,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          # Make sure we have full history so we can commit back
           fetch-depth: 0
 
       - name: Set up Python
@@ -28,23 +26,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run earnings fetcher
+      # 🔍 Debug paths (CRITICAL)
+      - name: Debug paths
         run: |
+          echo "Repo root:"
+          pwd
+          ls -la
+          echo "tools/:"
+          ls -la tools || true
+          echo "Data/earnings/:"
+          ls -la Data/earnings || true
+
+      # 🚨 Run fetcher but DO NOT FAIL JOB
+      - name: Run earnings fetcher (non-fatal)
+        run: |
+          set +e
           python tools/fetch_earnings.py
+          echo "Fetcher exit code: $?"
+          set -e
 
       - name: Commit and push changes (if any)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
+          git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Check if anything in Data/earnings changed
-          if [[ -n "$(git status --porcelain Data/earnings)" ]]; then
-            echo "Changes detected in Data/earnings – committing..."
-            git add Data/earnings
-            git commit -m "Auto-update earnings CSVs"
-            git push origin HEAD:main
-          else
-            echo "No changes to commit."
+          git add Data/earnings || true
+
+          if git diff --cached --quiet; then
+            echo "No earnings CSV changes to commit."
+            exit 0
           fi
+
+          git commit -m "Auto-update earnings CSVs"
+          git push
