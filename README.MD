@@ -35,6 +35,10 @@ Compares valuation metrics and performance across countries using dividend yield
 8. Country Exposure with a Mix of Funds
 Blends multiple fund allocations to generate a full country-level portfolio exposure. Scrapes geographic weights from HL factsheets, applies user-defined allocation percentages, aggregates exposures, assigns market classifications (Developed, Emerging, Frontier), and visualises results through ranked tables, bar charts, and classification breakdowns.
 
+9. Macro Signals Dashboard
+
+Aggregates key macroeconomic indicators to assess market conditions. Includes US Treasury yield curve analysis (3M–30Y), US vs UK CPI trends with selectable history windows, real (inflation-adjusted) yields, and a combined macro regime score incorporating curve slope, inflation momentum, and monetary-tightness signals.
+
 Technical Stack:
 - Languages and Libraries
 - Python
