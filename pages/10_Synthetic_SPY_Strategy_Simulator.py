@@ -263,6 +263,24 @@ if run:
 
     st.dataframe(styler, use_container_width=True, hide_index=True)
 
+# ============================
+# Initial margin feasibility check (broker-style)
+# ============================
+initial_price = prices["Close"].iloc[0]
+contract_multiplier = 100
+
+initial_notional = initial_price * contracts * contract_multiplier
+initial_margin_required = margin_pct * initial_notional
+
+if initial_cash < initial_margin_required:
+    st.warning(
+        f"⚠️ Initial margin shortfall at trade entry\n\n"
+        f"- Required initial margin: ${initial_margin_required:,.0f}\n"
+        f"- Starting capital: ${initial_cash:,.0f}\n\n"
+        "A real broker would reject this trade at entry.\n"
+        "This simulation continues assuming margin top-ups are allowed."
+    )
+
     # ============================
     # Raw data (collapsed by default)
     # ============================
