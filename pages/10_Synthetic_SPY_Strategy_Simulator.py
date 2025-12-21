@@ -41,7 +41,6 @@ to focus on leverage, carry, and risk management.
 st.subheader("Simulation Inputs")
 
 with st.expander("Adjust Assumptions", expanded=True):
-
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -136,6 +135,7 @@ if run:
     if use_dynamic_rf:
         with st.spinner("Downloading ^IRX (risk-free proxy)..."):
             irx = load_irx(start, end)
+
         if not irx.empty:
             rf_series = irx.reindex(prices.index).ffill().bfill()
         else:
@@ -196,50 +196,43 @@ if run:
     st.pyplot(fig2)
 
     # ============================
-# Year-by-year table (prettified + year formatting)
-# ============================
-st.subheader("Year-by-Year Returns (%)")
+    # Year-by-year table (prettified + year formatting)
+    # ============================
+    st.subheader("Year-by-Year Returns (%)")
 
-yearly = pd.DataFrame(
-    {
-        "Synthetic %": res["Synthetic_Equity"],
-        "Buy & Hold %": res["BuyHold_Equity"],
-    }
-).resample("Y").last()
-
-yearly_returns = yearly.pct_change().dropna() * 100
-yearly_returns.index = yearly_returns.index.year  # int years
-
-# Turn index into a column reliably (whatever its name is)
-yearly_tbl = yearly_returns.reset_index()
-
-# Rename first column (the year) to "Year" robustly
-first_col = yearly_tbl.columns[0]
-yearly_tbl = yearly_tbl.rename(columns={first_col: "Year"})
-
-# Force "Year" to display cleanly (no commas)
-yearly_tbl["Year"] = yearly_tbl["Year"].astype(int).astype(str)
-
-# Outperformance
-yearly_tbl["Synthetic Outperformance / Underperformance"] = (
-    yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
-)
-
-# Center + prettify
-styler = (
-    yearly_tbl.style
-    .format(
+    yearly = pd.DataFrame(
         {
-            "Synthetic %": "{:.2f}",
-            "Buy & Hold %": "{:.2f}",
-            "Synthetic Outperformance / Underperformance": "{:.2f}",
+            "Synthetic %": res["Synthetic_Equity"],
+            "Buy & Hold %": res["BuyHold_Equity"],
         }
-    )
-    .set_properties(**{"text-align": "center"})
-    .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
-)
+    ).resample("Y").last()
 
-st.dataframe(styler, use_container_width=True, hide_index=True)
+    yearly_returns = yearly.pct_change().dropna() * 100
+    yearly_returns.index = yearly_returns.index.year  # int years
+
+    yearly_tbl = yearly_returns.reset_index()
+    first_col = yearly_tbl.columns[0]
+    yearly_tbl = yearly_tbl.rename(columns={first_col: "Year"})
+    yearly_tbl["Year"] = yearly_tbl["Year"].astype(int).astype(str)
+
+    yearly_tbl["Synthetic Outperformance / Underperformance"] = (
+        yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
+    )
+
+    styler = (
+        yearly_tbl.style
+        .format(
+            {
+                "Synthetic %": "{:.2f}",
+                "Buy & Hold %": "{:.2f}",
+                "Synthetic Outperformance / Underperformance": "{:.2f}",
+            }
+        )
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+    )
+
+    st.dataframe(styler, use_container_width=True, hide_index=True)
 
     # ============================
     # Raw data (collapsed by default)
