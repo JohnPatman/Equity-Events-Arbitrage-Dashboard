@@ -141,6 +141,35 @@ if run:
         else:
             st.warning("Could not load ^IRX. Using fallback rate.")
 
+    # ============================
+    # Broker realism check (soft warning) — uses entry price at start of period
+    # ============================
+    start_dt = prices.index[0]
+    start_spy = float(prices.loc[start_dt, "Close"])
+
+    contract_multiplier = 100  # SPY option contract multiplier
+    est_notional = start_spy * int(contracts) * contract_multiplier
+    est_initial_margin = float(margin_pct) * est_notional
+
+    if float(initial_cash) < est_initial_margin:
+        shortfall = est_initial_margin - float(initial_cash)
+        st.warning(
+            f"⚠️ **Initial margin feasibility check (entry at {start_dt.date()})**\n\n"
+            f"- SPY entry price (Close): **${start_spy:,.2f}**\n"
+            f"- Contracts: **{int(contracts)}** (multiplier {contract_multiplier})\n"
+            f"- Estimated notional: **${est_notional:,.0f}**\n"
+            f"- Initial margin required (@ {float(margin_pct)*100:.0f}%): **${est_initial_margin:,.0f}**\n"
+            f"- Your starting capital: **${float(initial_cash):,.0f}**\n"
+            f"- Shortfall: **${shortfall:,.0f}**\n\n"
+            f"A real broker would likely reject opening this position without additional capital. "
+            f"The simulation will still run so you can stress-test top-ups / liquidation."
+        )
+    else:
+        st.info(
+            f"✅ **Initial margin check passed (entry at {start_dt.date()})** — "
+            f"Required ≈ ${est_initial_margin:,.0f} vs starting capital ${float(initial_cash):,.0f}."
+        )
+
     params = SimParams(
         initial_cash=float(initial_cash),
         contracts=int(contracts),
