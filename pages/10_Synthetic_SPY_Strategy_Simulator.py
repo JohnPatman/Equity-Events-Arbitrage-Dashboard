@@ -91,18 +91,53 @@ with st.expander("Adjust Assumptions", expanded=True):
 
     run = st.button("Run Simulation", type="primary")
 
+
+# ============================
+# Helpers
+# ============================
+def _flatten_yf_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    yfinance sometimes returns MultiIndex columns (esp. on Streamlit Cloud).
+    This normalizes them into single-level columns like 'Close', 'Adj Close', etc.
+    """
+    if isinstance(df.columns, pd.MultiIndex):
+        # Most common shape: ('Close','SPY') etc. Keep the first level.
+        df = df.copy()
+        df.columns = df.columns.get_level_values(0)
+    return df
+
+
+def _first_scalar(x) -> float:
+    """
+    Convert possibly Series/array-like to a single float.
+    """
+    if isinstance(x, pd.Series):
+        return float(x.iloc[0])
+    return float(x)
+
+
 # ============================
 # Data loaders
 # ============================
 @st.cache_data(show_spinner=False)
 def load_spy(start_date: dt.date, end_date: dt.date) -> pd.DataFrame:
     data = yf.download("SPY", start=start_date, end=end_date, auto_adjust=False, progress=False)
-    return data[["Close", "Adj Close"]].dropna()
+    data = _flatten_yf_columns(data)
+
+    out = data[["Close", "Adj Close"]].dropna()
+
+    # Guarantee these are Series columns (not nested)
+    for col in ["Close", "Adj Close"]:
+        if isinstance(out[col], pd.DataFrame):
+            out[col] = out[col].iloc[:, 0]
+
+    return out
 
 
 @st.cache_data(show_spinner=False)
 def load_irx(start_date: dt.date, end_date: dt.date) -> pd.Series:
     data = yf.download("^IRX", start=start_date, end=end_date, auto_adjust=False, progress=False)
+    data = _flatten_yf_columns(data)
 
     if data.empty:
         return pd.Series(dtype=float)
@@ -142,36 +177,38 @@ if run:
             st.warning("Could not load ^IRX. Using fallback rate.")
 
     # ============================
-    # Broker realism check (soft warning) — uses entry price at start of period
+    # Initial margin feasibility check (broker-style) — use entry price at start
     # ============================
     start_dt = prices.index[0]
-    start_spy = float(prices.loc[start_dt, "Close"])
+    start_spy = _first_scalar(prices.loc[start_dt, "Close"])
 
-    contract_multiplier = 100  # SPY option contract multiplier
+    contract_multiplier = 100
     est_notional = start_spy * int(contracts) * contract_multiplier
     est_initial_margin = float(margin_pct) * est_notional
 
-    if float(initial_cash) < est_initial_margin:
-        shortfall = est_initial_margin - float(initial_cash)
+    init_cash_f = float(initial_cash)
+
+    if init_cash_f < float(est_initial_margin):
+        shortfall = float(est_initial_margin) - init_cash_f
         st.warning(
-            f"⚠️ **Initial margin feasibility check (entry at {start_dt.date()})**\n\n"
+            f"⚠️ Initial margin feasibility check (entry at {start_dt.date()})\n\n"
             f"- SPY entry price (Close): **${start_spy:,.2f}**\n"
             f"- Contracts: **{int(contracts)}** (multiplier {contract_multiplier})\n"
             f"- Estimated notional: **${est_notional:,.0f}**\n"
             f"- Initial margin required (@ {float(margin_pct)*100:.0f}%): **${est_initial_margin:,.0f}**\n"
-            f"- Your starting capital: **${float(initial_cash):,.0f}**\n"
+            f"- Your starting capital: **${init_cash_f:,.0f}**\n"
             f"- Shortfall: **${shortfall:,.0f}**\n\n"
-            f"A real broker would likely reject opening this position without additional capital. "
-            f"The simulation will still run so you can stress-test top-ups / liquidation."
+            "A real broker would likely reject opening this position without additional capital. "
+            "The simulation will still run so you can stress-test top-ups / liquidation."
         )
     else:
         st.info(
-            f"✅ **Initial margin check passed (entry at {start_dt.date()})** — "
-            f"Required ≈ ${est_initial_margin:,.0f} vs starting capital ${float(initial_cash):,.0f}."
+            f"✅ Initial margin check passed (entry at {start_dt.date()}) — "
+            f"Required ≈ ${est_initial_margin:,.0f} vs starting capital ${init_cash_f:,.0f}."
         )
 
     params = SimParams(
-        initial_cash=float(initial_cash),
+        initial_cash=init_cash_f,
         contracts=int(contracts),
         margin_pct=float(margin_pct),
         rf_rate_annual=float(rf_rate),
@@ -262,24 +299,6 @@ if run:
     )
 
     st.dataframe(styler, use_container_width=True, hide_index=True)
-
-# ============================
-# Initial margin feasibility check (broker-style)
-# ============================
-initial_price = prices["Close"].iloc[0]
-contract_multiplier = 100
-
-initial_notional = initial_price * contracts * contract_multiplier
-initial_margin_required = margin_pct * initial_notional
-
-if initial_cash < initial_margin_required:
-    st.warning(
-        f"⚠️ Initial margin shortfall at trade entry\n\n"
-        f"- Required initial margin: ${initial_margin_required:,.0f}\n"
-        f"- Starting capital: ${initial_cash:,.0f}\n\n"
-        "A real broker would reject this trade at entry.\n"
-        "This simulation continues assuming margin top-ups are allowed."
-    )
 
     # ============================
     # Raw data (collapsed by default)
