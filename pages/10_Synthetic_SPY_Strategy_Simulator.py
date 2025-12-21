@@ -48,23 +48,20 @@ with st.expander("Adjust Assumptions", expanded=True):
         start = st.date_input("Start Date", value=dt.date(2015, 1, 1))
         end = st.date_input("End Date", value=dt.date(2025, 12, 31))
         initial_cash = st.number_input(
-            "Starting Capital in Synthetic/Buy-to-Hold ($)", min_value=1000.0, value=10000.0, step=1000.0
+            "Starting Capital in Synthetic/Buy-to-Hold ($)",
+            min_value=1000.0,
+            value=10000.0,
+            step=1000.0,
         )
 
     with col2:
         contracts = st.number_input("Number of Contracts", min_value=1, value=1, step=1)
         roll_months = st.selectbox("Roll Frequency (Months)", [1, 3, 6, 12], index=2)
-        margin_pct = st.slider(
-            "Margin Requirement (% of Notional)", 0.10, 0.50, 0.25, 0.01
-        )
+        margin_pct = st.slider("Margin Requirement (% of Notional)", 0.10, 0.50, 0.25, 0.01)
 
     with col3:
-        use_dynamic_rf = st.checkbox(
-            "Use dynamic risk-free rate (13-week T-bill)", value=True
-        )
-        rf_rate = (
-            st.slider("Fallback risk-free rate (annual %)", 0.0, 10.0, 4.5, 0.1) / 100.0
-        )
+        use_dynamic_rf = st.checkbox("Use dynamic risk-free rate (13-week T-bill)", value=True)
+        rf_rate = st.slider("Fallback risk-free rate (annual %)", 0.0, 10.0, 4.5, 0.1) / 100.0
         div_drag = (
             st.slider(
                 "Dividend drag (annual %, optional)",
@@ -199,36 +196,54 @@ if run:
     st.pyplot(fig2)
 
     # ============================
-    # Year-by-year table
+    # Year-by-year table (prettified + year formatting)
     # ============================
     st.subheader("Year-by-Year Returns (%)")
 
-    yearly = pd.DataFrame({
-        "Synthetic %": res["Synthetic_Equity"],
-        "Buy & Hold %": res["BuyHold_Equity"],
-    }).resample("Y").last()
+    yearly = pd.DataFrame(
+        {
+            "Synthetic %": res["Synthetic_Equity"],
+            "Buy & Hold %": res["BuyHold_Equity"],
+        }
+    ).resample("Y").last()
 
     yearly_returns = yearly.pct_change().dropna() * 100
-    yearly_returns.index = yearly_returns.index.year
-    yearly_returns["Synthetic Outperformance / Underperformance"] = (
-    yearly_returns["Synthetic %"] - yearly_returns["Buy & Hold %"]
-)
+    yearly_returns.index = yearly_returns.index.year  # int years
 
+    yearly_tbl = yearly_returns.reset_index().rename(columns={"index": "Year"})
+    yearly_tbl["Year"] = yearly_tbl["Year"].astype(str)
 
-    st.dataframe(yearly_returns.round(2))
-
-    # ============================
-    # Raw data
-    # ============================
-    st.subheader("Results table / Raw Data (last 200 rows)")
-    st.dataframe(res.tail(200))
-
-    st.download_button(
-        "Download full results CSV",
-        data=res.to_csv().encode("utf-8"),
-        file_name="synthetic_spy_sim.csv",
-        mime="text/csv",
+    yearly_tbl["Synthetic Outperformance / Underperformance"] = (
+        yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
     )
+
+    styler = (
+        yearly_tbl.style
+        .format(
+            {
+                "Synthetic %": "{:.2f}",
+                "Buy & Hold %": "{:.2f}",
+                "Synthetic Outperformance / Underperformance": "{:.2f}",
+            }
+        )
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+    )
+
+    st.dataframe(styler, use_container_width=True, hide_index=True)
+
+    # ============================
+    # Raw data (collapsed by default)
+    # ============================
+    with st.expander("Results table / Raw Data (last 200 rows)", expanded=False):
+        st.dataframe(res.tail(200), use_container_width=True)
+
+        st.download_button(
+            "Download full results CSV",
+            data=res.to_csv().encode("utf-8"),
+            file_name="synthetic_spy_sim.csv",
+            mime="text/csv",
+        )
 
 else:
     st.info("Adjust parameters above and click **Run Simulation**.")
