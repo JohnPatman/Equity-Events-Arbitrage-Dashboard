@@ -58,10 +58,14 @@ with st.expander("Adjust Assumptions", expanded=True):
     with col2:
         contracts = st.number_input("Number of Contracts", min_value=1, value=1, step=1)
         roll_months = st.selectbox("Roll Frequency (Months)", [1, 3, 6, 12], index=2)
-        margin_pct = st.slider("Margin Requirement (% of Notional)", 0.10, 0.50, 0.25, 0.01)
+        margin_pct = st.slider(
+            "Margin Requirement (% of Notional)", 0.10, 0.50, 0.25, 0.01
+        )
 
     with col3:
-        use_dynamic_rf = st.checkbox("Use dynamic risk-free rate (13-week T-bill)", value=True)
+        use_dynamic_rf = st.checkbox(
+            "Use dynamic risk-free rate (13-week T-bill)", value=True
+        )
         rf_rate = st.slider("Fallback risk-free rate (annual %)", 0.0, 10.0, 4.5, 0.1) / 100.0
         div_drag = (
             st.slider(
@@ -187,23 +191,24 @@ if run:
 
     init_cash_f = float(initial_cash)
 
+    # IMPORTANT: escape $ to avoid Streamlit Markdown interpreting math mode ($...$)
     if init_cash_f < float(est_initial_margin):
         shortfall = float(est_initial_margin) - init_cash_f
         st.warning(
             f"⚠️ Initial margin feasibility check (entry at {start_dt.date()})\n\n"
-            f"- SPY entry price (Close): **${start_spy:,.2f}**\n"
+            f"- SPY entry price (Close): **\\${start_spy:,.2f}**\n"
             f"- Contracts: **{int(contracts)}** (multiplier {contract_multiplier})\n"
-            f"- Estimated notional: **${est_notional:,.0f}**\n"
-            f"- Initial margin required (@ {float(margin_pct)*100:.0f}%): **${est_initial_margin:,.0f}**\n"
-            f"- Your starting capital: **${init_cash_f:,.0f}**\n"
-            f"- Shortfall: **${shortfall:,.0f}**\n\n"
+            f"- Estimated notional: **\\${est_notional:,.0f}**\n"
+            f"- Initial margin required (@ {float(margin_pct)*100:.0f}%): **\\${est_initial_margin:,.0f}**\n"
+            f"- Your starting capital: **\\${init_cash_f:,.0f}**\n"
+            f"- Shortfall: **\\${shortfall:,.0f}**\n\n"
             "A real broker would likely reject opening this position without additional capital. "
             "The simulation will still run so you can stress-test top-ups / liquidation."
         )
     else:
-        st.info(
+        st.success(
             f"✅ Initial margin check passed (entry at {start_dt.date()}) — "
-            f"Required ≈ ${est_initial_margin:,.0f} vs starting capital ${init_cash_f:,.0f}."
+            f"Required ≈ \\${est_initial_margin:,.0f} vs starting capital \\${init_cash_f:,.0f}."
         )
 
     params = SimParams(
