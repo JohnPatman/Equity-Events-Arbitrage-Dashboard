@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
-st.title("Scrip Dividend Arbitrage (LMP example)")
+st.title("🔹 Scrip Dividend Arbitrage (LMP example)")
 st.markdown("""
 This dashboard evaluates the economic value of electing cash vs scrip dividends for LMP.
 
