@@ -31,8 +31,6 @@ The goal is to evaluate capital efficiency, drawdowns, and survivability
 of a synthetic equity strategy versus traditional buy-and-hold SPY.
 
 This is an economic exposure and funding simulation, not option pricing.
-Implied volatility, Greeks, and option market microstructure are deliberately abstracted
-to focus on leverage, carry, and risk management.
 """)
 
 # ============================
@@ -47,7 +45,7 @@ with st.expander("Adjust Assumptions", expanded=True):
         start = st.date_input("Start Date", value=dt.date(2015, 1, 1))
         end = st.date_input("End Date", value=dt.date(2025, 12, 31))
         initial_cash = st.number_input(
-            "Starting Capital in Synthetic/Buy-to-Hold ($)",
+            "Starting Capital in Synthetic / Buy-to-Hold ($)",
             min_value=1000.0,
             value=10000.0,
             step=1000.0,
@@ -79,16 +77,6 @@ with st.expander("Adjust Assumptions", expanded=True):
     )
     topup_mode = "topup" if mode.startswith("Top up") else "liquidate"
 
-    cap_topups = st.checkbox("Cap total top-ups (stress test)")
-    max_total_topup = None
-    if cap_topups:
-        max_total_topup = st.number_input(
-            "Max total top-ups allowed ($)",
-            min_value=0.0,
-            value=8000.0,
-            step=500.0,
-        )
-
     run = st.button("Run Simulation", type="primary")
 
 # ============================
@@ -103,14 +91,11 @@ def load_spy(start_date: dt.date, end_date: dt.date) -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def load_irx(start_date: dt.date, end_date: dt.date) -> pd.Series:
     data = yf.download("^IRX", start=start_date, end=end_date, auto_adjust=False, progress=False)
-
     if data.empty:
         return pd.Series(dtype=float)
-
     close = data["Close"]
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
-
     irx_dec = close.astype(float) / 100.0
     irx_dec.name = "RF_Annual"
     return irx_dec
@@ -124,22 +109,13 @@ if run:
         st.error("Start date must be before end date.")
         st.stop()
 
-    with st.spinner("Downloading SPY data..."):
-        prices = load_spy(start, end)
-
-    if prices.empty:
-        st.error("No SPY data returned.")
-        st.stop()
-
+    prices = load_spy(start, end)
     rf_series = None
-    if use_dynamic_rf:
-        with st.spinner("Downloading ^IRX (risk-free proxy)..."):
-            irx = load_irx(start, end)
 
+    if use_dynamic_rf:
+        irx = load_irx(start, end)
         if not irx.empty:
             rf_series = irx.reindex(prices.index).ffill().bfill()
-        else:
-            st.warning("Could not load ^IRX. Using fallback rate.")
 
     params = SimParams(
         initial_cash=float(initial_cash),
@@ -149,37 +125,36 @@ if run:
         roll_months=int(roll_months),
         dividend_yield_drag_annual=float(div_drag),
         topup_mode=topup_mode,
-        max_total_topup=float(max_total_topup) if max_total_topup is not None else None,
     )
 
     res, m = simulate_synthetic(prices, params, rf_annual_series=rf_series)
 
     # ============================
-    # Charts & Metrics
+    # Capital efficiency metrics (NEW)
     # ============================
-    st.subheader("SPY Price Graph")
-    figp, axp = plt.subplots(figsize=(10, 4))
-    axp.plot(prices.index, prices["Close"])
-    axp.set_ylabel("Price per Share of SPY ($)")
-    axp.grid(True, alpha=0.3)
-    st.pyplot(figp)
+    capital_required_total = initial_cash + m["peak_total_topup"]
+    capital_per_contract = capital_required_total / contracts
 
+    st.subheader("Capital Efficiency & Survivability")
+
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Capital Required per Contract", f"${capital_per_contract:,.0f}")
+    k2.metric("Total Capital Required", f"${capital_required_total:,.0f}")
+    k3.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
+
+    # ============================
+    # Performance metrics
+    # ============================
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Final Value (Synthetic)", f"${m['final_synthetic_equity']:,.0f}")
     c2.metric("Final Value (Buy & Hold)", f"${m['final_buyhold_equity']:,.0f}")
     c3.metric("CAGR (Synthetic)", f"{m['cagr_synthetic']*100:,.1f}%")
     c4.metric("CAGR (Buy & Hold)", f"{m['cagr_buyhold']*100:,.1f}%")
 
-    c5, c6, c7, c8 = st.columns(4)
-    c5.metric("Max Drawdown in Selected Period (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
-    c6.metric("Max Drawdown in Selected Period (Buy & Hold)", f"{m['max_dd_buyhold']*100:,.1f}%")
-    c7.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
-    c8.metric("Peak Total Margin Top-up", f"${m['peak_total_topup']:,.0f}")
-
-    if m["liquidated"]:
-        st.warning("Liquidation triggered under your settings.")
-
-    st.subheader("Comparison: Synthetic VS Buy & Hold")
+    # ============================
+    # Charts
+    # ============================
+    st.subheader("Synthetic vs Buy & Hold Equity Curves")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(res.index, res["Synthetic_Equity"], label="Synthetic")
     ax.plot(res.index, res["BuyHold_Equity"], label="Buy & Hold")
@@ -187,7 +162,7 @@ if run:
     ax.grid(True, alpha=0.3)
     st.pyplot(fig)
 
-    st.subheader("Account Margin in relation to Notional Value")
+    st.subheader("Margin Requirement vs Notional")
     fig2, ax2 = plt.subplots(figsize=(10, 5))
     ax2.plot(res.index, res["Synthetic_Notional"], label="Notional")
     ax2.plot(res.index, res["Margin_Req"], label="Margin Req")
@@ -196,7 +171,7 @@ if run:
     st.pyplot(fig2)
 
     # ============================
-    # Year-by-year table (prettified + year formatting)
+    # Year-by-year returns
     # ============================
     st.subheader("Year-by-Year Returns (%)")
 
@@ -208,44 +183,28 @@ if run:
     ).resample("Y").last()
 
     yearly_returns = yearly.pct_change().dropna() * 100
-    yearly_returns.index = yearly_returns.index.year  # int years
+    yearly_returns.index = yearly_returns.index.year
 
     yearly_tbl = yearly_returns.reset_index()
-    first_col = yearly_tbl.columns[0]
-    yearly_tbl = yearly_tbl.rename(columns={first_col: "Year"})
-    yearly_tbl["Year"] = yearly_tbl["Year"].astype(int).astype(str)
-
-    yearly_tbl["Synthetic Outperformance / Underperformance"] = (
+    yearly_tbl = yearly_tbl.rename(columns={yearly_tbl.columns[0]: "Year"})
+    yearly_tbl["Synthetic Outperformance"] = (
         yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
     )
 
-    styler = (
+    st.dataframe(
         yearly_tbl.style
-        .format(
-            {
-                "Synthetic %": "{:.2f}",
-                "Buy & Hold %": "{:.2f}",
-                "Synthetic Outperformance / Underperformance": "{:.2f}",
-            }
-        )
+        .format("{:.2f}", subset=["Synthetic %", "Buy & Hold %", "Synthetic Outperformance"])
         .set_properties(**{"text-align": "center"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}]),
+        use_container_width=True,
+        hide_index=True,
     )
 
-    st.dataframe(styler, use_container_width=True, hide_index=True)
-
     # ============================
-    # Raw data (collapsed by default)
+    # Raw data
     # ============================
     with st.expander("Results table / Raw Data (last 200 rows)", expanded=False):
         st.dataframe(res.tail(200), use_container_width=True)
-
-        st.download_button(
-            "Download full results CSV",
-            data=res.to_csv().encode("utf-8"),
-            file_name="synthetic_spy_sim.csv",
-            mime="text/csv",
-        )
 
 else:
     st.info("Adjust parameters above and click **Run Simulation**.")
