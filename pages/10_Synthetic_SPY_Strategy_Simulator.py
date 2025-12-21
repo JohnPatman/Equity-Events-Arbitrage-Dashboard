@@ -196,41 +196,50 @@ if run:
     st.pyplot(fig2)
 
     # ============================
-    # Year-by-year table (prettified + year formatting)
-    # ============================
-    st.subheader("Year-by-Year Returns (%)")
+# Year-by-year table (prettified + year formatting)
+# ============================
+st.subheader("Year-by-Year Returns (%)")
 
-    yearly = pd.DataFrame(
+yearly = pd.DataFrame(
+    {
+        "Synthetic %": res["Synthetic_Equity"],
+        "Buy & Hold %": res["BuyHold_Equity"],
+    }
+).resample("Y").last()
+
+yearly_returns = yearly.pct_change().dropna() * 100
+yearly_returns.index = yearly_returns.index.year  # int years
+
+# Turn index into a column reliably (whatever its name is)
+yearly_tbl = yearly_returns.reset_index()
+
+# Rename first column (the year) to "Year" robustly
+first_col = yearly_tbl.columns[0]
+yearly_tbl = yearly_tbl.rename(columns={first_col: "Year"})
+
+# Force "Year" to display cleanly (no commas)
+yearly_tbl["Year"] = yearly_tbl["Year"].astype(int).astype(str)
+
+# Outperformance
+yearly_tbl["Synthetic Outperformance / Underperformance"] = (
+    yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
+)
+
+# Center + prettify
+styler = (
+    yearly_tbl.style
+    .format(
         {
-            "Synthetic %": res["Synthetic_Equity"],
-            "Buy & Hold %": res["BuyHold_Equity"],
+            "Synthetic %": "{:.2f}",
+            "Buy & Hold %": "{:.2f}",
+            "Synthetic Outperformance / Underperformance": "{:.2f}",
         }
-    ).resample("Y").last()
-
-    yearly_returns = yearly.pct_change().dropna() * 100
-    yearly_returns.index = yearly_returns.index.year  # int years
-
-    yearly_tbl = yearly_returns.reset_index().rename(columns={"index": "Year"})
-    yearly_tbl["Year"] = yearly_tbl["Year"].astype(str)
-
-    yearly_tbl["Synthetic Outperformance / Underperformance"] = (
-        yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
     )
+    .set_properties(**{"text-align": "center"})
+    .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+)
 
-    styler = (
-        yearly_tbl.style
-        .format(
-            {
-                "Synthetic %": "{:.2f}",
-                "Buy & Hold %": "{:.2f}",
-                "Synthetic Outperformance / Underperformance": "{:.2f}",
-            }
-        )
-        .set_properties(**{"text-align": "center"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
-    )
-
-    st.dataframe(styler, use_container_width=True, hide_index=True)
+st.dataframe(styler, use_container_width=True, hide_index=True)
 
     # ============================
     # Raw data (collapsed by default)
