@@ -14,7 +14,8 @@ st.set_page_config(page_title="Synthetic SPY Strategy Simulator", layout="wide")
 # ============================
 st.title("🔹 Synthetic SPY Strategy Simulator")
 
-st.markdown("""
+st.markdown(
+    """
 This dashboard models a systematic synthetic long exposure to the S&P 500 using
 a call–put combination that behaves like a forward contract (≈ 100 delta per contract),
 rolled at fixed intervals.
@@ -33,7 +34,8 @@ of a synthetic equity strategy versus traditional buy-and-hold SPY.
 This is an economic exposure and funding simulation, not option pricing.
 Implied volatility, Greeks, and option market microstructure are deliberately abstracted
 to focus on leverage, carry, and risk management.
-""")
+"""
+)
 
 # ============================
 # Inputs
@@ -101,16 +103,13 @@ def _flatten_yf_columns(df: pd.DataFrame) -> pd.DataFrame:
     This normalizes them into single-level columns like 'Close', 'Adj Close', etc.
     """
     if isinstance(df.columns, pd.MultiIndex):
-        # Most common shape: ('Close','SPY') etc. Keep the first level.
         df = df.copy()
         df.columns = df.columns.get_level_values(0)
     return df
 
 
 def _first_scalar(x) -> float:
-    """
-    Convert possibly Series/array-like to a single float.
-    """
+    """Convert possibly Series/array-like to a single float."""
     if isinstance(x, pd.Series):
         return float(x.iloc[0])
     return float(x)
@@ -221,6 +220,14 @@ if run:
     res, m = simulate_synthetic(prices, params, rf_annual_series=rf_series)
 
     # ============================
+    # Margin call count (top-up events)
+    # A "margin call" occurs on any day where Total_Topup increases vs prior day.
+    # ============================
+    topup_changes = res["Total_Topup"].diff().fillna(0.0)
+    margin_calls = int((topup_changes > 0).sum())
+    max_single_topup = float(topup_changes[topup_changes > 0].max()) if (topup_changes > 0).any() else 0.0
+
+    # ============================
     # Charts & Metrics
     # ============================
     st.subheader("SPY Price Graph")
@@ -236,11 +243,15 @@ if run:
     c3.metric("CAGR (Synthetic)", f"{m['cagr_synthetic']*100:,.1f}%")
     c4.metric("CAGR (Buy & Hold)", f"{m['cagr_buyhold']*100:,.1f}%")
 
-    c5, c6, c7, c8 = st.columns(4)
-    c5.metric("Max Drawdown in Selected Period (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
-    c6.metric("Max Drawdown in Selected Period (Buy & Hold)", f"{m['max_dd_buyhold']*100:,.1f}%")
+    c5, c6, c7, c8, c9 = st.columns(5)
+    c5.metric("Max Drawdown (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
+    c6.metric("Max Drawdown (Buy & Hold)", f"{m['max_dd_buyhold']*100:,.1f}%")
     c7.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
-    c8.metric("Peak Total Margin Top-up", f"${m['peak_total_topup']:,.0f}")
+    c8.metric("Max Additional Capital Required", f"${m['peak_total_topup']:,.0f}")
+    c9.metric("Number of Margin Calls", f"{margin_calls}")
+
+    # Optional extra "pain" metric (uncomment if you want it visible)
+    # st.caption(f"Largest single top-up event: ${max_single_topup:,.0f}")
 
     if m["liquidated"]:
         st.warning("Liquidation triggered under your settings.")
@@ -286,8 +297,7 @@ if run:
     )
 
     styler = (
-        yearly_tbl.style
-        .format(
+        yearly_tbl.style.format(
             {
                 "Synthetic %": "{:.2f}",
                 "Buy & Hold %": "{:.2f}",
