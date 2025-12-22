@@ -16,7 +16,7 @@ st.title("🔹 Synthetic SPY Strategy Simulator")
 
 st.markdown(
     """
-This dashboard models a systematic synthetic long exposure to the S&P 500 using
+This dashboard models a systematic **synthetic long exposure** to the S&P 500 using
 a call–put combination that behaves like a forward contract (≈ 100 delta per contract),
 rolled at fixed intervals.
 
@@ -28,14 +28,25 @@ It brings together:
 - optional dividend drag to reflect foregone SPY dividends,
 - realistic margin stress, top-ups, and liquidation rules.
 
-The goal is to evaluate capital efficiency, drawdowns, and survivability
-of a synthetic equity strategy versus traditional buy-and-hold SPY.
+### Benchmarks (equal starting cash)
+Alongside the synthetic strategy, the dashboard plots **equal-cash buy & hold** equity curves for:
 
-This is an economic exposure and funding simulation, not option pricing.
+- **SPY** (unlevered S&P 500 ETF),
+- **SSO** (≈2× daily S&P 500 leveraged ETF),
+- **UPRO** (≈3× daily S&P 500 leveraged ETF).
+
+Note: SSO/UPRO are **daily-reset** leveraged ETFs, so their long-run performance can diverge
+materially from “2× or 3× SPY” due to volatility/path effects (“volatility drag”).
+
+The goal is to evaluate capital efficiency, drawdowns, and survivability
+of a synthetic equity strategy versus traditional buy-and-hold alternatives.
+
+This is an economic exposure and funding simulation, **not option pricing**.
 Implied volatility, Greeks, and option market microstructure are deliberately abstracted
 to focus on leverage, carry, and risk management.
 """
 )
+
 
 # ============================
 # Inputs
@@ -317,21 +328,21 @@ if run:
     # ---- CAGRs
     c5, c6, c7, c8 = st.columns(4)
     c5.metric("CAGR (Synthetic)", f"{m['cagr_synthetic']*100:,.1f}%")
-    c6.metric("CAGR (SPY B&H)", f"{spy_cagr*100:,.1f}%" if pd.notna(spy_cagr) else "n/a")
-    c7.metric("CAGR (SSO B&H)", f"{sso_cagr*100:,.1f}%" if pd.notna(sso_cagr) else "n/a")
-    c8.metric("CAGR (UPRO B&H)", f"{upro_cagr*100:,.1f}%" if pd.notna(upro_cagr) else "n/a")
+    c6.metric("CAGR (SPY Buy & Hold)", f"{spy_cagr*100:,.1f}%" if pd.notna(spy_cagr) else "n/a")
+    c7.metric("CAGR (SSO Buy & Hold)", f"{sso_cagr*100:,.1f}%" if pd.notna(sso_cagr) else "n/a")
+    c8.metric("CAGR (UPRO Buy & Hold)", f"{upro_cagr*100:,.1f}%" if pd.notna(upro_cagr) else "n/a")
 
     # ---- Risk / margin diagnostics (UPDATED: add SSO + UPRO max drawdowns)
     c9, c10, c11, c12 = st.columns(4)
     c9.metric("Max Drawdown (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
-    c10.metric("Max Drawdown (SPY B&H)", f"{spy_dd*100:,.1f}%" if pd.notna(spy_dd) else "n/a")
-    c11.metric("Max Drawdown (SSO B&H)", f"{sso_dd*100:,.1f}%" if pd.notna(sso_dd) else "n/a")
-    c12.metric("Max Drawdown (UPRO B&H)", f"{upro_dd*100:,.1f}%" if pd.notna(upro_dd) else "n/a")
+    c10.metric("Max Drawdown (SPY Buy & Hold)", f"{spy_dd*100:,.1f}%" if pd.notna(spy_dd) else "n/a")
+    c11.metric("Max Drawdown (SSO Buy & Hold)", f"{sso_dd*100:,.1f}%" if pd.notna(sso_dd) else "n/a")
+    c12.metric("Max Drawdown (UPRO Buy & Hold)", f"{upro_dd*100:,.1f}%" if pd.notna(upro_dd) else "n/a")
 
     c13, c14, c15 = st.columns(3)
-    c13.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
-    c14.metric("Max Additional Capital Required", f"${m['peak_total_topup']:,.0f}")
-    c15.metric("Number of Margin Calls", f"{margin_calls}")
+    c13.metric("Peak Margin Requirement (Synthetic)", f"${m['peak_margin_req']:,.0f}")
+    c14.metric("Max Additional Capital Required (Synthetic)", f"${m['peak_total_topup']:,.0f}")
+    c15.metric("Number of Margin Calls (Synthetic)", f"{margin_calls}")
 
     if m["liquidated"]:
         st.warning("Liquidation triggered under your settings.")
