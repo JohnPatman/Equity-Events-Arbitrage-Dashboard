@@ -2,13 +2,15 @@ Equity Events & Arbitrage Dashboard
 
 A Streamlit-based analytics platform for dividend forecasting, FX arbitrage, ADR mispricing, earnings behaviour, and global equity valuation.
 
+Live app:
+https://equity-events-arbitrage-dashboard-byv5jedymv77prgu9fg3jz.streamlit.app/
+
 Overview:
 This project is an interactive financial analytics dashboard designed to identify pricing inefficiencies across global equity markets. It brings together tools used in corporate actions, trading desks, quantitative research, and investment analysis.
 
-The dashboard automates data ingestion, applies financial models, and presents insights in a clear, structured interface.
+Designed for corporate actions professionals, trading support, equity finance desks, and quantitatively-minded investors analysing event-driven inefficiencies.
 
-Live app:
-https://equity-events-arbitrage-dashboard-byv5jedymv77prgu9fg3jz.streamlit.app/
+The dashboard combines live market data, company-published terms, and deterministic financial models. Strategy simulators (e.g. Synthetic SPY) are analytical tools, not trading recommendations, and are designed to stress-test structure, margin usage, and regime sensitivity rather than predict returns.
 
 Features:
 1. Upcoming UK Dividend Events
@@ -41,15 +43,7 @@ Blends multiple fund allocations to generate a full country-level portfolio expo
 Models a capital-efficient synthetic long S&P 500 strategy using a call–put structure. Evaluates margin usage, funding carry, drawdowns, and survivability across market regimes, with equal-cash comparisons against buy-and-hold SPY, SSO, and UPRO including equity curves and annual return breakdowns.
 
 Technical Stack:
-- Languages and Libraries
-- Python
-- Streamlit
-- Pandas, NumPy
-- Altair
-- yFinance
-- Requests
-- BeautifulSoup4
-- lxml
+Python (Streamlit, Pandas, NumPy, Altair, Plotly, yFinance, Requests, BeautifulSoup4, lxml).
 
 Data Sources:
 - Company IR websites
