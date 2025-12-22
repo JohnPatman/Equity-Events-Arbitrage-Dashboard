@@ -29,7 +29,7 @@ It brings together:
 - realistic margin stress, top-ups, and liquidation rules.
 
 ### Benchmarks (equal starting cash)
-Alongside the synthetic strategy, the dashboard plots **equal-cash buy & hold** equity curves for:
+Alongside the synthetic strategy, the dashboard plots equal-cash buy & hold equity curves for:
 
 - **SPY** (unlevered S&P 500 ETF),
 - **SSO** (≈2× daily S&P 500 leveraged ETF),
