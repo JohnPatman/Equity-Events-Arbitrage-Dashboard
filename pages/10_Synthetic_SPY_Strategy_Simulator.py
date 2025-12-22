@@ -119,6 +119,25 @@ def _first_scalar(x) -> float:
     return float(x)
 
 
+def _cagr_from_equity(equity: pd.Series) -> float:
+    equity = equity.dropna()
+    if equity.empty:
+        return float("nan")
+    years = (equity.index[-1] - equity.index[0]).days / 365.25
+    if years <= 0:
+        return float("nan")
+    return float((equity.iloc[-1] / equity.iloc[0]) ** (1 / years) - 1)
+
+
+def _max_drawdown(equity: pd.Series) -> float:
+    equity = equity.dropna()
+    if equity.empty:
+        return float("nan")
+    peak = equity.cummax()
+    dd = (equity / peak) - 1.0
+    return float(dd.min())
+
+
 # ============================
 # Data loaders
 # ============================
@@ -152,6 +171,26 @@ def load_irx(start_date: dt.date, end_date: dt.date) -> pd.Series:
     irx_dec = close.astype(float) / 100.0
     irx_dec.name = "RF_Annual"
     return irx_dec
+
+
+@st.cache_data(show_spinner=False)
+def load_benchmark_adjclose(ticker: str, start_date: dt.date, end_date: dt.date) -> pd.Series:
+    """
+    Returns Adj Close as a clean Series for equal-cash buy & hold benchmarking.
+    """
+    data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=False, progress=False)
+    data = _flatten_yf_columns(data)
+
+    if data.empty:
+        return pd.Series(dtype=float, name=ticker)
+
+    adj = data["Adj Close"]
+    if isinstance(adj, pd.DataFrame):
+        adj = adj.iloc[:, 0]
+
+    adj = adj.dropna().astype(float)
+    adj.name = ticker
+    return adj
 
 
 # ============================
@@ -225,12 +264,38 @@ if run:
     res, m = simulate_synthetic(prices, params, rf_annual_series=rf_series)
 
     # ============================
+    # Equal-cash ETF benchmarks: SPY / SSO / UPRO (Buy & Hold)
+    # ============================
+    with st.spinner("Downloading benchmark ETFs (SPY / SSO / UPRO)..."):
+        spy_adj = load_benchmark_adjclose("SPY", start, end)
+        sso_adj = load_benchmark_adjclose("SSO", start, end)
+        upro_adj = load_benchmark_adjclose("UPRO", start, end)
+
+    # Align to simulation dates
+    idx = res.index
+    spy_adj = spy_adj.reindex(idx).ffill().bfill()
+    sso_adj = sso_adj.reindex(idx).ffill().bfill()
+    upro_adj = upro_adj.reindex(idx).ffill().bfill()
+
+    # Equal-cash equity curves
+    spy_bh_eq = init_cash_f * (spy_adj / spy_adj.iloc[0])
+    sso_bh_eq = init_cash_f * (sso_adj / sso_adj.iloc[0]) if not sso_adj.empty else pd.Series(index=idx, dtype=float)
+    upro_bh_eq = init_cash_f * (upro_adj / upro_adj.iloc[0]) if not upro_adj.empty else pd.Series(index=idx, dtype=float)
+
+    spy_cagr = _cagr_from_equity(spy_bh_eq)
+    sso_cagr = _cagr_from_equity(sso_bh_eq) if sso_bh_eq.notna().any() else float("nan")
+    upro_cagr = _cagr_from_equity(upro_bh_eq) if upro_bh_eq.notna().any() else float("nan")
+
+    spy_dd = _max_drawdown(spy_bh_eq)
+    sso_dd = _max_drawdown(sso_bh_eq) if sso_bh_eq.notna().any() else float("nan")
+    upro_dd = _max_drawdown(upro_bh_eq) if upro_bh_eq.notna().any() else float("nan")
+
+    # ============================
     # Margin call count (top-up events)
     # A "margin call" occurs on any day where Total_Topup increases vs prior day.
     # ============================
     topup_changes = res["Total_Topup"].diff().fillna(0.0)
     margin_calls = int((topup_changes > 0).sum())
-    max_single_topup = float(topup_changes[topup_changes > 0].max()) if (topup_changes > 0).any() else 0.0
 
     # ============================
     # Charts & Metrics
@@ -242,33 +307,50 @@ if run:
     axp.grid(True, alpha=0.3)
     st.pyplot(figp)
 
+    # ---- Final Values (equal-cash comparisons)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Final Value (Synthetic)", f"${m['final_synthetic_equity']:,.0f}")
-    c2.metric("Final Value (Buy & Hold)", f"${m['final_buyhold_equity']:,.0f}")
-    c3.metric("CAGR (Synthetic)", f"{m['cagr_synthetic']*100:,.1f}%")
-    c4.metric("CAGR (Buy & Hold)", f"{m['cagr_buyhold']*100:,.1f}%")
+    c2.metric("Final Value (SPY Buy & Hold)", f"${spy_bh_eq.iloc[-1]:,.0f}")
+    c3.metric("Final Value (SSO Buy & Hold)", f"${sso_bh_eq.iloc[-1]:,.0f}" if sso_bh_eq.notna().any() else "n/a")
+    c4.metric("Final Value (UPRO Buy & Hold)", f"${upro_bh_eq.iloc[-1]:,.0f}" if upro_bh_eq.notna().any() else "n/a")
 
-    c5, c6, c7, c8, c9 = st.columns(5)
-    c5.metric("Max Drawdown (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
-    c6.metric("Max Drawdown (Buy & Hold)", f"{m['max_dd_buyhold']*100:,.1f}%")
-    c7.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
-    c8.metric("Max Additional Capital Required", f"${m['peak_total_topup']:,.0f}")
-    c9.metric("Number of Margin Calls", f"{margin_calls}")
+    # ---- CAGRs
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("CAGR (Synthetic)", f"{m['cagr_synthetic']*100:,.1f}%")
+    c6.metric("CAGR (SPY B&H)", f"{spy_cagr*100:,.1f}%" if pd.notna(spy_cagr) else "n/a")
+    c7.metric("CAGR (SSO B&H)", f"{sso_cagr*100:,.1f}%" if pd.notna(sso_cagr) else "n/a")
+    c8.metric("CAGR (UPRO B&H)", f"{upro_cagr*100:,.1f}%" if pd.notna(upro_cagr) else "n/a")
 
-    # Optional extra "pain" metric (uncomment if you want it visible)
-    # st.caption(f"Largest single top-up event: ${max_single_topup:,.0f}")
+    # ---- Risk / margin diagnostics
+    c9, c10, c11, c12, c13 = st.columns(5)
+    c9.metric("Max Drawdown (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
+    c10.metric("Max Drawdown (SPY B&H)", f"{spy_dd*100:,.1f}%" if pd.notna(spy_dd) else "n/a")
+    c11.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
+    c12.metric("Max Additional Capital Required", f"${m['peak_total_topup']:,.0f}")
+    c13.metric("Number of Margin Calls", f"{margin_calls}")
 
     if m["liquidated"]:
         st.warning("Liquidation triggered under your settings.")
 
-    st.subheader("Comparison: Synthetic VS Buy & Hold")
+    # ============================
+    # Equity curve comparison chart
+    # ============================
+    st.subheader("Comparison: Synthetic vs Equal-Cash Buy & Hold (SPY / SSO / UPRO)")
+
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(res.index, res["Synthetic_Equity"], label="Synthetic")
-    ax.plot(res.index, res["BuyHold_Equity"], label="Buy & Hold")
+    ax.plot(spy_bh_eq.index, spy_bh_eq.values, label="SPY Buy & Hold")
+    if sso_bh_eq.notna().any():
+        ax.plot(sso_bh_eq.index, sso_bh_eq.values, label="SSO Buy & Hold (2x)")
+    if upro_bh_eq.notna().any():
+        ax.plot(upro_bh_eq.index, upro_bh_eq.values, label="UPRO Buy & Hold (3x)")
     ax.legend()
     ax.grid(True, alpha=0.3)
     st.pyplot(fig)
 
+    # ============================
+    # Margin diagnostics
+    # ============================
     st.subheader("Account Margin in relation to Notional Value")
     fig2, ax2 = plt.subplots(figsize=(10, 5))
     ax2.plot(res.index, res["Synthetic_Notional"], label="Notional")
@@ -285,7 +367,9 @@ if run:
     yearly = pd.DataFrame(
         {
             "Synthetic %": res["Synthetic_Equity"],
-            "Buy & Hold %": res["BuyHold_Equity"],
+            "SPY %": spy_bh_eq,
+            "SSO %": sso_bh_eq,
+            "UPRO %": upro_bh_eq,
         }
     ).resample("Y").last()
 
@@ -297,16 +381,16 @@ if run:
     yearly_tbl = yearly_tbl.rename(columns={first_col: "Year"})
     yearly_tbl["Year"] = yearly_tbl["Year"].astype(int).astype(str)
 
-    yearly_tbl["Synthetic Outperformance / Underperformance"] = (
-        yearly_tbl["Synthetic %"] - yearly_tbl["Buy & Hold %"]
-    )
+    yearly_tbl["Synthetic vs SPY (pp)"] = yearly_tbl["Synthetic %"] - yearly_tbl["SPY %"]
 
     styler = (
         yearly_tbl.style.format(
             {
                 "Synthetic %": "{:.2f}",
-                "Buy & Hold %": "{:.2f}",
-                "Synthetic Outperformance / Underperformance": "{:.2f}",
+                "SPY %": "{:.2f}",
+                "SSO %": "{:.2f}",
+                "UPRO %": "{:.2f}",
+                "Synthetic vs SPY (pp)": "{:.2f}",
             }
         )
         .set_properties(**{"text-align": "center"})
