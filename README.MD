@@ -38,7 +38,7 @@ Blends multiple fund allocations to generate a full country-level portfolio expo
 9. Macro Signals Dashboard aggregates key macroeconomic indicators to assess market conditions. Includes US Treasury yield curve analysis (3M–30Y), US vs UK CPI trends with selectable history windows, real (inflation-adjusted) yields, and a combined macro regime score incorporating curve slope, inflation momentum, and monetary-tightness signals.
 
 10. Synthetic SPY Strategy Simulator
-Models a capital-efficient synthetic long S&P 500 strategy using a call–put structure. Evaluates margin usage, funding returns, drawdowns, and survivability across market regimes, with full comparison against buy-and-hold SPY including equity curves and annual return breakdowns.
+Models a capital-efficient synthetic long S&P 500 strategy using a call–put structure. Evaluates margin usage, funding carry, drawdowns, and survivability across market regimes, with equal-cash comparisons against buy-and-hold SPY, SSO, and UPRO including equity curves and annual return breakdowns.
 
 Technical Stack:
 - Languages and Libraries
