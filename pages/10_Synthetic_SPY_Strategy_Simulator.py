@@ -16,7 +16,7 @@ st.title("🔹 Synthetic SPY Strategy Simulator")
 
 st.markdown(
     """
-This dashboard models a systematic **synthetic long exposure** to the S&P 500 using
+This dashboard models a systematic synthetic long exposure to the S&P 500 using
 a call–put combination that behaves like a forward contract (≈ 100 delta per contract),
 rolled at fixed intervals.
 
@@ -35,13 +35,13 @@ Alongside the synthetic strategy, the dashboard plots **equal-cash buy & hold** 
 - **SSO** (≈2× daily S&P 500 leveraged ETF),
 - **UPRO** (≈3× daily S&P 500 leveraged ETF).
 
-Note: SSO/UPRO are **daily-reset** leveraged ETFs, so their long-run performance can diverge
+Note: SSO/UPRO are daily-reset leveraged ETFs, so their long-run performance can diverge
 materially from “2× or 3× SPY” due to volatility/path effects (“volatility drag”).
 
 The goal is to evaluate capital efficiency, drawdowns, and survivability
 of a synthetic equity strategy versus traditional buy-and-hold alternatives.
 
-This is an economic exposure and funding simulation, **not option pricing**.
+This is an economic exposure and funding simulation, not option pricing.
 Implied volatility, Greeks, and option market microstructure are deliberately abstracted
 to focus on leverage, carry, and risk management.
 """
