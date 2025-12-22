@@ -321,13 +321,17 @@ if run:
     c7.metric("CAGR (SSO B&H)", f"{sso_cagr*100:,.1f}%" if pd.notna(sso_cagr) else "n/a")
     c8.metric("CAGR (UPRO B&H)", f"{upro_cagr*100:,.1f}%" if pd.notna(upro_cagr) else "n/a")
 
-    # ---- Risk / margin diagnostics
-    c9, c10, c11, c12, c13 = st.columns(5)
+    # ---- Risk / margin diagnostics (UPDATED: add SSO + UPRO max drawdowns)
+    c9, c10, c11, c12 = st.columns(4)
     c9.metric("Max Drawdown (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
     c10.metric("Max Drawdown (SPY B&H)", f"{spy_dd*100:,.1f}%" if pd.notna(spy_dd) else "n/a")
-    c11.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
-    c12.metric("Max Additional Capital Required", f"${m['peak_total_topup']:,.0f}")
-    c13.metric("Number of Margin Calls", f"{margin_calls}")
+    c11.metric("Max Drawdown (SSO B&H)", f"{sso_dd*100:,.1f}%" if pd.notna(sso_dd) else "n/a")
+    c12.metric("Max Drawdown (UPRO B&H)", f"{upro_dd*100:,.1f}%" if pd.notna(upro_dd) else "n/a")
+
+    c13, c14, c15 = st.columns(3)
+    c13.metric("Peak Margin Requirement", f"${m['peak_margin_req']:,.0f}")
+    c14.metric("Max Additional Capital Required", f"${m['peak_total_topup']:,.0f}")
+    c15.metric("Number of Margin Calls", f"{margin_calls}")
 
     if m["liquidated"]:
         st.warning("Liquidation triggered under your settings.")
