@@ -1,16 +1,16 @@
 Equity Events & Arbitrage Dashboard
 
-A Streamlit-based analytics platform for dividend forecasting, FX arbitrage, ADR mispricing, earnings behaviour, and global equity valuation.
+A Streamlit-based financial analytics platform focused on dividend forecasting, FX arbitrage, ADR mispricing, earnings behaviour, and global equity valuation.
 
 Live app:
 https://equity-events-arbitrage-dashboard-byv5jedymv77prgu9fg3jz.streamlit.app/
 
-Overview:
-This project is an interactive financial analytics dashboard designed to identify pricing inefficiencies across global equity markets. It brings together tools used in corporate actions, trading desks, quantitative research, and investment analysis.
+Overview
+This project is an interactive dashboard designed to identify pricing inefficiencies across global equity markets, combining tools commonly used in corporate actions, trading desks, quantitative research, and investment analysis.
 
-Designed for corporate actions professionals, trading support, equity finance desks, and quantitatively-minded investors analysing event-driven inefficiencies.
+It is designed for corporate actions professionals, trading support and equity finance desks, and quantitatively minded investors analysing event-driven inefficiencies.
 
-The dashboard combines live market data, company-published terms, and deterministic financial models. Strategy simulators (e.g. Synthetic SPY) are analytical tools, not trading recommendations, and are designed to stress-test structure, margin usage, and regime sensitivity rather than predict returns.
+The dashboard integrates live market data, company-published terms, and deterministic financial models. Strategy simulators (e.g. Synthetic SPY) are analytical tools intended to stress-test structure, margin usage, and regime sensitivity, not to provide trading recommendations or predict returns.
 
 Features:
 1. Upcoming UK Dividend Events
