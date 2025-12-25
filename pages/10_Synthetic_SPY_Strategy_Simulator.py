@@ -22,7 +22,6 @@ DEFAULT_NET_DEBIT_TABLE: Dict[int, float] = {
     12: 1745.0,
     27: 2794.0,
 }
-
 DEFAULT_TABLE_SPY_PRICE = 689.56  # from your screenshot
 
 
@@ -86,6 +85,10 @@ daily-reset leveraged ETFs — not to predict real-world execution outcomes.
 # ============================
 st.subheader("Simulation Inputs")
 
+# ---- Defaults for net-debit inputs (so they exist even if the expander isn't opened)
+table_spy_price = float(DEFAULT_TABLE_SPY_PRICE)
+net_debit_table: Dict[int, float] = dict(DEFAULT_NET_DEBIT_TABLE)
+
 with st.expander("Adjust Assumptions", expanded=True):
     col1, col2, col3 = st.columns(3)
 
@@ -126,7 +129,7 @@ with st.expander("Adjust Assumptions", expanded=True):
             / 100.0
         )
 
-    # ---- Extra realism controls
+    # ---- Extra realism controls (still inside Adjust Assumptions)
     colA, colB, colC = st.columns(3)
     with colA:
         roll_cost_bps = st.slider(
@@ -149,27 +152,6 @@ with st.expander("Adjust Assumptions", expanded=True):
             help="Converts your net debits into an annualised carry rate by tenor, interpolates for the selected roll, and applies it daily to notional.",
         )
 
-    with st.expander("Option net-debit curve (editable)", expanded=False):
-        st.caption(
-            "These are your snapshot net debits ($) for ~100-delta synthetic at each tenor, "
-            "taken at some reference SPY price (e.g. your screenshot shows SPY≈689.56). "
-            "We convert $ debits → % of notional at that reference price, then annualise as: (debit_pct / years), "
-            "then interpolate between tenors."
-        )
-
-        table_spy_price = st.number_input(
-            "SPY price used for this net-debit table (reference spot)",
-            value=float(DEFAULT_TABLE_SPY_PRICE),
-            step=0.01,
-            help="Important: your $ net debits depend on spot level. We scale them as % of notional at this reference SPY price.",
-        )
-
-        nd_3 = st.number_input("Net debit ($) for 3 months", value=float(DEFAULT_NET_DEBIT_TABLE[3]), step=1.0)
-        nd_6 = st.number_input("Net debit ($) for 6 months", value=float(DEFAULT_NET_DEBIT_TABLE[6]), step=1.0)
-        nd_12 = st.number_input("Net debit ($) for 12 months", value=float(DEFAULT_NET_DEBIT_TABLE[12]), step=1.0)
-        nd_27 = st.number_input("Net debit ($) for 27 months", value=float(DEFAULT_NET_DEBIT_TABLE[27]), step=1.0)
-        net_debit_table = {3: float(nd_3), 6: float(nd_6), 12: float(nd_12), 27: float(nd_27)}
-
     mode = st.selectbox(
         "Margin Breach Handling",
         ["Top up to meet margin", "Liquidate on margin breach"],
@@ -187,6 +169,28 @@ with st.expander("Adjust Assumptions", expanded=True):
         )
 
     run = st.button("Run Simulation", type="primary")
+
+# ✅ OPTION 2: Put this expander at TOP LEVEL (not nested)
+with st.expander("Option net-debit curve (editable)", expanded=False):
+    st.caption(
+        "These are your snapshot net debits ($) for ~100-delta synthetic at each tenor, "
+        "taken at some reference SPY price (e.g. your screenshot shows SPY≈689.56). "
+        "We convert $ debits → % of notional at that reference price, then annualise as: (debit_pct / years), "
+        "then interpolate between tenors."
+    )
+
+    table_spy_price = st.number_input(
+        "SPY price used for this net-debit table (reference spot)",
+        value=float(DEFAULT_TABLE_SPY_PRICE),
+        step=0.01,
+        help="Important: your $ net debits depend on spot level. We scale them as % of notional at this reference SPY price.",
+    )
+
+    nd_3 = st.number_input("Net debit ($) for 3 months", value=float(DEFAULT_NET_DEBIT_TABLE[3]), step=1.0)
+    nd_6 = st.number_input("Net debit ($) for 6 months", value=float(DEFAULT_NET_DEBIT_TABLE[6]), step=1.0)
+    nd_12 = st.number_input("Net debit ($) for 12 months", value=float(DEFAULT_NET_DEBIT_TABLE[12]), step=1.0)
+    nd_27 = st.number_input("Net debit ($) for 27 months", value=float(DEFAULT_NET_DEBIT_TABLE[27]), step=1.0)
+    net_debit_table = {3: float(nd_3), 6: float(nd_6), 12: float(nd_12), 27: float(nd_27)}
 
 
 # ============================
@@ -529,7 +533,7 @@ if run:
         carry_r_annual, carry_curve = _annualised_carry_from_table(
             roll_months=int(roll_months),
             net_debit_table_months=net_debit_table,
-            table_spy_price=float(table_spy_price),   # ✅ FIX: use reference spot from your table
+            table_spy_price=float(table_spy_price),  # ✅ uses reference spot from your table
             contracts=int(contracts),
             multiplier=contract_multiplier,
         )
