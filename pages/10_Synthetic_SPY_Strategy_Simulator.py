@@ -1,4 +1,6 @@
 import datetime as dt
+import time
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -47,7 +49,6 @@ to focus on leverage, carry, and risk management.
 """
 )
 
-
 # ============================
 # Inputs
 # ============================
@@ -69,14 +70,10 @@ with st.expander("Adjust Assumptions", expanded=True):
     with col2:
         contracts = st.number_input("Number of Contracts", min_value=1, value=1, step=1)
         roll_months = st.selectbox("Roll Frequency (Months)", [1, 3, 6, 12], index=2)
-        margin_pct = st.slider(
-            "Margin Requirement (% of Notional)", 0.10, 0.50, 0.25, 0.01
-        )
+        margin_pct = st.slider("Margin Requirement (% of Notional)", 0.10, 0.50, 0.25, 0.01)
 
     with col3:
-        use_dynamic_rf = st.checkbox(
-            "Use dynamic risk-free rate (13-week T-bill)", value=True
-        )
+        use_dynamic_rf = st.checkbox("Use dynamic risk-free rate (13-week T-bill)", value=True)
         rf_rate = st.slider("Fallback risk-free rate (annual %)", 0.0, 10.0, 4.5, 0.1) / 100.0
         div_drag = (
             st.slider(
@@ -149,18 +146,86 @@ def _max_drawdown(equity: pd.Series) -> float:
     return float(dd.min())
 
 
+def _clamp_end_date(end_date: dt.date) -> dt.date:
+    """Avoid future end dates (can make yfinance return empty on Streamlit Cloud)."""
+    today = dt.date.today()
+    return min(end_date, today)
+
+
+def _yf_download_retry(
+    ticker: str,
+    start_date: Optional[dt.date] = None,
+    end_date: Optional[dt.date] = None,
+    period: Optional[str] = None,
+    attempts: int = 3,
+) -> pd.DataFrame:
+    """
+    Robust yfinance downloader for Streamlit Cloud:
+    - retries with backoff
+    - threads=False tends to be more stable on shared cloud
+    """
+    for i in range(attempts):
+        try:
+            if period is not None:
+                df = yf.download(
+                    ticker,
+                    period=period,
+                    auto_adjust=False,
+                    progress=False,
+                    threads=False,
+                )
+            else:
+                df = yf.download(
+                    ticker,
+                    start=start_date,
+                    end=end_date,
+                    auto_adjust=False,
+                    progress=False,
+                    threads=False,
+                )
+
+            df = _flatten_yf_columns(df)
+            if not df.empty:
+                return df
+
+        except Exception:
+            pass
+
+        time.sleep(0.8 * (i + 1))
+
+    return pd.DataFrame()
+
+
 # ============================
-# Data loaders
+# Data loaders (ROBUST)
 # ============================
 @st.cache_data(show_spinner=False)
 def load_spy(start_date: dt.date, end_date: dt.date) -> pd.DataFrame:
-    data = yf.download("SPY", start=start_date, end=end_date, auto_adjust=False, progress=False)
-    data = _flatten_yf_columns(data)
+    """
+    Loads SPY Close + Adj Close robustly:
+    1) clamp end date to today
+    2) try start/end
+    3) fallback to period='max' then slice locally
+    """
+    end_date = _clamp_end_date(end_date)
 
-    out = data[["Close", "Adj Close"]].dropna()
+    df = _yf_download_retry("SPY", start_date=start_date, end_date=end_date, period=None, attempts=3)
 
-    # Guarantee these are Series columns (not nested)
-    for col in ["Close", "Adj Close"]:
+    if df.empty:
+        df = _yf_download_retry("SPY", period="max", attempts=3)
+        if not df.empty:
+            df = df.loc[(df.index.date >= start_date) & (df.index.date <= end_date)]
+
+    if df.empty:
+        return pd.DataFrame()
+
+    cols = [c for c in ["Close", "Adj Close"] if c in df.columns]
+    if not cols:
+        return pd.DataFrame()
+
+    out = df[cols].dropna()
+
+    for col in cols:
         if isinstance(out[col], pd.DataFrame):
             out[col] = out[col].iloc[:, 0]
 
@@ -169,13 +234,19 @@ def load_spy(start_date: dt.date, end_date: dt.date) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def load_irx(start_date: dt.date, end_date: dt.date) -> pd.Series:
-    data = yf.download("^IRX", start=start_date, end=end_date, auto_adjust=False, progress=False)
-    data = _flatten_yf_columns(data)
+    end_date = _clamp_end_date(end_date)
 
-    if data.empty:
+    df = _yf_download_retry("^IRX", start_date=start_date, end_date=end_date, period=None, attempts=3)
+
+    if df.empty:
+        df = _yf_download_retry("^IRX", period="max", attempts=3)
+        if not df.empty:
+            df = df.loc[(df.index.date >= start_date) & (df.index.date <= end_date)]
+
+    if df.empty or "Close" not in df.columns:
         return pd.Series(dtype=float)
 
-    close = data["Close"]
+    close = df["Close"]
     if isinstance(close, pd.DataFrame):
         close = close.iloc[:, 0]
 
@@ -188,14 +259,21 @@ def load_irx(start_date: dt.date, end_date: dt.date) -> pd.Series:
 def load_benchmark_adjclose(ticker: str, start_date: dt.date, end_date: dt.date) -> pd.Series:
     """
     Returns Adj Close as a clean Series for equal-cash buy & hold benchmarking.
+    Uses the same robust download approach as SPY.
     """
-    data = yf.download(ticker, start=start_date, end=end_date, auto_adjust=False, progress=False)
-    data = _flatten_yf_columns(data)
+    end_date = _clamp_end_date(end_date)
 
-    if data.empty:
+    df = _yf_download_retry(ticker, start_date=start_date, end_date=end_date, period=None, attempts=3)
+
+    if df.empty:
+        df = _yf_download_retry(ticker, period="max", attempts=3)
+        if not df.empty:
+            df = df.loc[(df.index.date >= start_date) & (df.index.date <= end_date)]
+
+    if df.empty or "Adj Close" not in df.columns:
         return pd.Series(dtype=float, name=ticker)
 
-    adj = data["Adj Close"]
+    adj = df["Adj Close"]
     if isinstance(adj, pd.DataFrame):
         adj = adj.iloc[:, 0]
 
@@ -208,6 +286,9 @@ def load_benchmark_adjclose(ticker: str, start_date: dt.date, end_date: dt.date)
 # Run simulation
 # ============================
 if run:
+    # Clamp end date to today for downloads (UI can still show future date)
+    end = _clamp_end_date(end)
+
     if start >= end:
         st.error("Start date must be before end date.")
         st.stop()
@@ -216,7 +297,12 @@ if run:
         prices = load_spy(start, end)
 
     if prices.empty:
-        st.error("No SPY data returned.")
+        st.error(
+            "No SPY data returned.\n\n"
+            "On Streamlit Cloud this can happen if Yahoo blocks/rate-limits the shared IP. "
+            "Try again in a minute, or use a shorter date range. "
+            "If it keeps happening, the durable fix is to serve prices from cached CSVs."
+        )
         st.stop()
 
     rf_series = None
@@ -241,7 +327,6 @@ if run:
 
     init_cash_f = float(initial_cash)
 
-    # IMPORTANT: escape $ to avoid Streamlit Markdown interpreting math mode ($...$)
     if init_cash_f < float(est_initial_margin):
         shortfall = float(est_initial_margin) - init_cash_f
         st.warning(
@@ -282,13 +367,11 @@ if run:
         sso_adj = load_benchmark_adjclose("SSO", start, end)
         upro_adj = load_benchmark_adjclose("UPRO", start, end)
 
-    # Align to simulation dates
     idx = res.index
     spy_adj = spy_adj.reindex(idx).ffill().bfill()
     sso_adj = sso_adj.reindex(idx).ffill().bfill()
     upro_adj = upro_adj.reindex(idx).ffill().bfill()
 
-    # Equal-cash equity curves
     spy_bh_eq = init_cash_f * (spy_adj / spy_adj.iloc[0])
     sso_bh_eq = init_cash_f * (sso_adj / sso_adj.iloc[0]) if not sso_adj.empty else pd.Series(index=idx, dtype=float)
     upro_bh_eq = init_cash_f * (upro_adj / upro_adj.iloc[0]) if not upro_adj.empty else pd.Series(index=idx, dtype=float)
@@ -332,7 +415,7 @@ if run:
     c7.metric("CAGR (SSO Buy & Hold)", f"{sso_cagr*100:,.1f}%" if pd.notna(sso_cagr) else "n/a")
     c8.metric("CAGR (UPRO Buy & Hold)", f"{upro_cagr*100:,.1f}%" if pd.notna(upro_cagr) else "n/a")
 
-    # ---- Risk / margin diagnostics (UPDATED: add SSO + UPRO max drawdowns)
+    # ---- Risk / margin diagnostics (includes SSO/UPRO max drawdowns)
     c9, c10, c11, c12 = st.columns(4)
     c9.metric("Max Drawdown (Synthetic)", f"{m['max_dd_synthetic']*100:,.1f}%")
     c10.metric("Max Drawdown (SPY Buy & Hold)", f"{spy_dd*100:,.1f}%" if pd.notna(spy_dd) else "n/a")
