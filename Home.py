@@ -6,9 +6,8 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📊 Equity Events & Arbitrage Dashboard")
+st.title("Equity Events & Arbitrage Dashboard")
 st.write("""
-Welcome to your analytics hub.
 
 Use the sidebar on the left to navigate through the tools:
 - **Upcoming Popular UK Dividends**
