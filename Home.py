@@ -18,6 +18,9 @@ Use the sidebar on the left to navigate through the tools:
 - **Earnings Intelligence**
 - **Scrip Arbitrage**
 - **Global Equity Valuation**
+- **Country Exposure with a Mix of Funds**
+- **Macro Signals**
+- **Synthetic SPY Simulator**
 
 Each module is now fully separated for clarity, maintainability, and performance.
 
