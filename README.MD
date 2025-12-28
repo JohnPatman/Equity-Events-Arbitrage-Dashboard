@@ -5,7 +5,8 @@ A Streamlit-based financial analytics platform focused on dividend forecasting, 
 Live app:
 https://equity-events-arbitrage-dashboard-byv5jedymv77prgu9fg3jz.streamlit.app/
 
-Overview
+Overview:
+
 This project is an interactive dashboard designed to identify pricing inefficiencies across global equity markets, combining tools commonly used in corporate actions, trading desks, quantitative research, and investment analysis.
 
 It is designed for corporate actions professionals, trading support and equity finance desks, and quantitatively minded investors analysing event-driven inefficiencies.
@@ -13,6 +14,7 @@ It is designed for corporate actions professionals, trading support and equity f
 The dashboard integrates live market data, company-published terms, and deterministic financial models. Strategy simulators (e.g. Synthetic SPY) are analytical tools intended to stress-test structure, margin usage, and regime sensitivity, not to provide trading recommendations or predict returns.
 
 Features:
+
 1. Upcoming UK Dividend Events
 Fetches company investor-relations announcements and builds a forward dividend calendar for major UK stocks. Dates and declared amounts are standardised, and uncertainty is flagged where appropriate.
 
@@ -43,15 +45,18 @@ Blends multiple fund allocations to generate a full country-level portfolio expo
 Models a capital-efficient synthetic long S&P 500 strategy using a call–put structure. Evaluates margin usage, funding carry, drawdowns, and survivability across market regimes, with equal-cash comparisons against buy-and-hold SPY, SSO, and UPRO including equity curves and annual return breakdowns.
 
 Technical Stack:
+
 Python (Streamlit, Pandas, NumPy, Altair, Plotly, yFinance, Requests, BeautifulSoup4, lxml).
 
 Data Sources:
+
 - Company IR websites
 - Market FX feeds
 - Yahoo Finance
 - MSCI datasets
 
 Skills Demonstrated:
+
 1. Financial modelling
 Dividend forecasting, FX parity analysis, ADR conversion, earnings surprise analysis, valuation modelling.
 
