@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 
+
+# OS junk
+.DS_Store
