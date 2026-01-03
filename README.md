@@ -57,17 +57,19 @@ Data Sources:
 
 Skills Demonstrated:
 
-1. Financial modelling
+1. Financial modelling: 
+
 Dividend forecasting, FX parity analysis, ADR conversion, earnings surprise analysis, valuation modelling.
 
-2. Software engineering
+2. Software engineering: 
+
 Modular architecture, data scraping, API integration, input validation, state management, and production deployment using Streamlit Cloud.
 
-3. Quantitative analysis
+3. Quantitative analysis:
+
 Arbitrage logic, forward-FX modelling, ratio normalisation, time-series interpretation, and structured data pipelines.
 
-Created by:
 
-John Patman
+Created by: John Patman
 
-Corporate Actions Specialist | CFA Level 1 Candidate
+CFA Level 1 Candidate
