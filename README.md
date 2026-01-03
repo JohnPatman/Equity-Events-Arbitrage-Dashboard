@@ -13,32 +13,43 @@ Overview:
 Features:
 
 1. Upcoming UK Dividend Events
+
 Fetches company investor-relations announcements and builds a forward dividend calendar for major UK stocks. Dates and declared amounts are standardised, and uncertainty is flagged where appropriate.
 
 2. Dividend Growth Model
+
 Analyses fifteen years of dividend history. Highlights annual increases and decreases to show long-term payout behaviour and stability.
 
 3. Currency Arbitrage
+
 Evaluates dividend currency election opportunities by comparing the company’s published FX rate with live market FX. Includes borrow-arbitrage modelling, forward-FX hedging, and a FX Override & Scenario Test.
 
 4. ADR vs Local Share Arbitrage
+
 Normalises local share prices into ADR terms using FX and conversion ratios. Identifies deviations between ADR and local listings and highlights potential arbitrage opportunities.
 
 5. Earnings Intelligence
+
 Examines historical earnings surprises, beat rates, and volatility. Displays recent reported quarters and visualises surprise behaviour to support pre-earnings analysis and strategy design.
 
 6. Scrip Dividend Arbitrage
+
 Models the value of cash versus scrip elections using current market prices and the company’s scrip issue price. Provides optimal election recommendations, including scenarios where a lender mandates the election.
 
 7. Global Equity Valuation Model
+
 Compares valuation metrics and performance across countries using dividend yield, P/E, forward P/E, price-to-book, and multi-period returns. Includes a scoring model and a heat-mapped valuation table with CSV export.
 
 8. Country Exposure with a Mix of Funds
+
 Blends multiple fund allocations to generate a full country-level portfolio exposure. Scrapes geographic weights from HL factsheets, applies user-defined allocation percentages, aggregates exposures, assigns market classifications (Developed, Emerging, Frontier), and visualises results through ranked tables, bar charts, and classification breakdowns.
 
-9. Macro Signals Dashboard aggregates key macroeconomic indicators to assess market conditions. Includes US Treasury yield curve analysis (3M–30Y), US vs UK CPI trends with selectable history windows, real (inflation-adjusted) yields, and a combined macro regime score incorporating curve slope, inflation momentum, and monetary-tightness signals.
+9. Macro Signals 
+
+The dashboard aggregates key macroeconomic indicators to assess market conditions. Includes US Treasury yield curve analysis (3M–30Y), US vs UK CPI trends with selectable history windows, real (inflation-adjusted) yields, and a combined macro regime score incorporating curve slope, inflation momentum, and monetary-tightness signals.
 
 10. Synthetic SPY Strategy Simulator
+
 Models a capital-efficient synthetic long S&P 500 strategy using a call–put structure. Evaluates margin usage, funding carry, drawdowns, and survivability across market regimes, with equal-cash comparisons against buy-and-hold SPY, SSO, and UPRO including equity curves and annual return breakdowns.
 
 Technical Stack: 
