@@ -41,9 +41,9 @@ Blends multiple fund allocations to generate a full country-level portfolio expo
 10. Synthetic SPY Strategy Simulator
 Models a capital-efficient synthetic long S&P 500 strategy using a call–put structure. Evaluates margin usage, funding carry, drawdowns, and survivability across market regimes, with equal-cash comparisons against buy-and-hold SPY, SSO, and UPRO including equity curves and annual return breakdowns.
 
-Technical Stack:
+Technical Stack: 
 
-Python (Streamlit, Pandas, NumPy, Altair, Plotly, yFinance, Requests, BeautifulSoup4, lxml).
+Python -- Streamlit, pandas, NumPy, Altair, Plotly, yfinance, Requests, BeautifulSoup4, lxml, matplotlib.
 
 Data Sources:
 
