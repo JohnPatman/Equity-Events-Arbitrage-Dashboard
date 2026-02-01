@@ -1,6 +1,6 @@
 Live app: https://equity-events-arbitrage-dashboard-byv5jedymv77prgu9fg3jz.streamlit.app
 
-</u>A Streamlit-based financial analytics platform focused on dividend forecasting, FX arbitrage, ADR mispricing, earnings behaviour, and global equity valuation.</u>
+A Streamlit-based financial analytics platform focused on dividend forecasting, FX arbitrage, ADR mispricing, earnings behaviour, and global equity valuation.
 
 Overview:
 
