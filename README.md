@@ -12,9 +12,9 @@ Overview:
 
 Features:
 
-1. Upcoming UK Dividend Events
+1. Scrip Dividend Arbitrage
 
-Fetches company investor-relations announcements and builds a forward dividend calendar for major UK stocks. Dates and declared amounts are standardised, and uncertainty is flagged where appropriate.
+Models the value of cash versus scrip elections using current market prices and the company’s scrip issue price. Provides optimal election recommendations, including scenarios where a lender mandates the election.
 
 2. Dividend Growth Model
 
@@ -32,9 +32,9 @@ Normalises local share prices into ADR terms using FX and conversion ratios. Ide
 
 Examines historical earnings surprises, beat rates, and volatility. Displays recent reported quarters and visualises surprise behaviour to support pre-earnings analysis and strategy design.
 
-6. Scrip Dividend Arbitrage
+6. Upcoming UK Dividend Events
 
-Models the value of cash versus scrip elections using current market prices and the company’s scrip issue price. Provides optimal election recommendations, including scenarios where a lender mandates the election.
+Fetches company investor-relations announcements and builds a forward dividend calendar for major UK stocks. Dates and declared amounts are standardised, and uncertainty is flagged where appropriate.
 
 7. Global Equity Valuation Model
 
