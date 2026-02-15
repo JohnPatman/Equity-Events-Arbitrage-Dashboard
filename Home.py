@@ -10,12 +10,12 @@ st.title("Equity Events & Arbitrage Dashboard")
 st.write("""
 
 Use the sidebar on the left to navigate through the tools:
-- **Upcoming Popular UK Dividends**
+- **Scrip Arbitrage**
 - **Dividend Growth Model**
 - **Currency Arbitrage**
 - **ADR Arbitrage**
 - **Earnings Intelligence**
-- **Scrip Arbitrage**
+- **Upcoming Popular UK Dividends**      
 - **Global Equity Valuation**
 - **Country Exposure with a Mix of Funds**
 - **Macro Signals**
