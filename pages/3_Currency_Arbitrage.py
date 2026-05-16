@@ -1,8 +1,10 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
 import pandas as pd
 from datetime import datetime
 
 from modules.arbitrage.airtel import fetch_airtel_latest
+apply_bloomberg_theme()
 from modules.arbitrage.fx import get_market_fx_usd_gbp
 
 st.title("🔹 Dividend FX & Arbitrage (Airtel example)")
