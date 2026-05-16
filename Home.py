@@ -1,10 +1,13 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
 
 st.set_page_config(
-    page_title="Equity Events & Arbitrage Dashboard",
-    page_icon="📊",
-    layout="wide"
+        page_title="Equity Events & Arbitrage Dashboard",
+        page_icon="📊",
+        layout="wide"
 )
+
+apply_bloomberg_theme()
 
 st.title("Equity Events & Arbitrage Dashboard")
 st.write("""
@@ -15,7 +18,7 @@ Use the sidebar on the left to navigate through the tools:
 - **Currency Arbitrage**
 - **ADR Arbitrage**
 - **Earnings Intelligence**
-- **Upcoming Popular UK Dividends**      
+- **Upcoming Popular UK Dividends**
 - **Global Equity Valuation**
 - **Country Exposure with a Mix of Funds**
 - **Macro Signals**
