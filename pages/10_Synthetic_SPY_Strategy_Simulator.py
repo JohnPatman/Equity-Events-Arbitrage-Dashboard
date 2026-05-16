@@ -5,6 +5,8 @@ from typing import Optional, List, Dict, Tuple
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
+apply_bloomberg_theme()
 import yfinance as yf
 
 from modules.strategy.synthetic_spy_sim import SimParams, simulate_synthetic
