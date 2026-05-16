@@ -1,6 +1,8 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import altair as alt
+apply_bloomberg_theme()
 import os
 
 st.title("🔹 Dividend Growth (Unilever example) (2010–2025)")
