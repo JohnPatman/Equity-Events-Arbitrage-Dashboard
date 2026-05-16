@@ -165,25 +165,14 @@ border-color: #FF8C00 !important;
 }
 
 [data-baseweb="checkbox"] [role="checkbox"],
-[data-testid="stCheckbox"] input[type="checkbox"] + div,
+
 [data-testid="stCheckbox"] span[role="checkbox"] {
 background-color: #0D0D00 !important;
 border: 2px solid #FF8C00 !important;
 border-radius: 0px !important;
 }
 
-[data-testid="stCheckbox"] input[type="checkbox"]:checked + div,
-[data-testid="stCheckbox"] span[role="checkbox"][aria-checked="true"] {
-background-color: #FF8C00 !important;
-border-color: #FF8C00 !important;
-}
 
-/* Force checkbox container backgrounds */
-[data-testid="stCheckbox"] > label > div:first-child {
-background-color: #0D0D00 !important;
-border: 2px solid #FF8C00 !important;
-border-radius: 2px !important;
-}
 
 /* ---- Sliders ---- */
 [data-testid="stSlider"] [role="slider"] {
