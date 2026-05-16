@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="ADR Arbitrage", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 from modules.arbitrage.adr_arbitrage import (
