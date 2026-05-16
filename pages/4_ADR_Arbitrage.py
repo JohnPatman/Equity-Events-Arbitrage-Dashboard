@@ -1,4 +1,5 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
 import pandas as pd
 from modules.arbitrage.adr_arbitrage import (
     tsm_arbitrage,
@@ -7,7 +8,7 @@ from modules.arbitrage.adr_arbitrage import (
     asml_arbitrage,
     azn_arbitrage,
 )
-
+apply_bloomberg_theme()
 st.title("🔹 ADR vs Local Share Arbitrage")
 st.markdown("""This dashboard compares ADR prices against their underlying local shares  
 to detect cross-market valuation gaps.
