@@ -5,13 +5,13 @@ from typing import Optional, List, Dict, Tuple
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+st.set_page_config(page_title="Synthetic SPY Strategy Simulator", layout="wide")
 from modules.theme import apply_bloomberg_theme
 apply_bloomberg_theme()
 import yfinance as yf
 
 from modules.strategy.synthetic_spy_sim import SimParams, simulate_synthetic
 
-st.set_page_config(page_title="Synthetic SPY Strategy Simulator", layout="wide")
 
 # ============================
 # Option net-debit table (your screenshot)
