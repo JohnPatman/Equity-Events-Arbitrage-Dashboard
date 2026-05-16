@@ -7,6 +7,22 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from modules.portfolio.hl_scraper import scrape_country_weights
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 st.title("🔹 Country Exposure with Mix of Funds")
