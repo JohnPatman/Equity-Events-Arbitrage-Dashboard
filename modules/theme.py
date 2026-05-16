@@ -332,7 +332,53 @@ input[type="text"] {
                                           color: #E8E0D0 !important;
                                             -webkit-text-fill-color: #E8E0D0 !important;
                                             }
-</style>
+/* ---- Fix white input box backgrounds (dark theme override) ---- */
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+        border-color: #B8860B !important;
+        }
+        div[data-baseweb="base-input"] input {
+            background-color: #1A1A0E !important;
+                color: #FF8C00 !important;
+                    -webkit-text-fill-color: #FF8C00 !important;
+                        caret-color: #FF8C00 !important;
+                        }
+                        div[data-baseweb="input"] {
+                            background-color: #1A1A0E !important;
+                            }
+                            /* Fix dropdown/select boxes */
+                            div[data-baseweb="select"] > div {
+                                background-color: #1A1A0E !important;
+                                    border-color: #B8860B !important;
+                                        color: #FF8C00 !important;
+                                        }
+                                        div[data-baseweb="popover"] {
+                                            background-color: #1A1A0E !important;
+                                            }
+                                            li[role="option"] {
+                                                background-color: #1A1A0E !important;
+                                                    color: #FF8C00 !important;
+                                                    }
+                                                    li[role="option"]:hover {
+                                                        background-color: #2A2A1E !important;
+                                                        }
+                                                        /* Fix slider tracks */
+                                                        div[data-testid="stSlider"] div[role="slider"] {
+                                                            background-color: #FF8C00 !important;
+                                                            }
+                                                            /* Fix date input boxes */
+                                                            div[data-baseweb="datepicker"] input {
+                                                                background-color: #1A1A0E !important;
+                                                                    color: #FF8C00 !important;
+                                                                        -webkit-text-fill-color: #FF8C00 !important;
+                                                                        }
+                                                                        /* Fix text area boxes */
+                                                                        textarea {
+                                                                            background-color: #1A1A0E !important;
+                                                                                color: #FF8C00 !important;
+                                                                                    border-color: #B8860B !important;
+                                                                                    }
+                                                                                    </style>
 """
 
 def apply_bloomberg_theme():
