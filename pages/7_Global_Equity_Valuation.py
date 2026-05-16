@@ -4,6 +4,22 @@ from modules.theme import apply_bloomberg_theme
 apply_bloomberg_theme()
 import pandas as pd
 from modules.valuation.global_valuation import build_global_valuation_table
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🔹 Global Equity Valuations")
 st.markdown("""This dashboard compares valuation metrics across global markets.
