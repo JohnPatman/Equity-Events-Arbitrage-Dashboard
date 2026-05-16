@@ -1,4 +1,6 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
+apply_bloomberg_theme()
 import pandas as pd
 from modules.valuation.global_valuation import build_global_valuation_table
 
