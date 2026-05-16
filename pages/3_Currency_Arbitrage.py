@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Currency Arbitrage", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 from datetime import datetime
