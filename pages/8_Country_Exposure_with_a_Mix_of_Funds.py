@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Country Exposure with a Mix of Funds", layout="wide")
 from modules.theme import apply_bloomberg_theme
 apply_bloomberg_theme()
 import pandas as pd
@@ -7,10 +8,6 @@ import plotly.graph_objects as go
 
 from modules.portfolio.hl_scraper import scrape_country_weights
 
-# ----------------------------------------------------
-# PAGE CONFIG
-# ----------------------------------------------------
-st.set_page_config(page_title="Country Exposure with a Mix of Funds", layout="wide")
 
 st.title("🔹 Country Exposure with Mix of Funds")
 
