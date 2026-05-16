@@ -5,6 +5,22 @@ apply_bloomberg_theme()
 import pandas as pd
 import glob, os
 from datetime import datetime
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🔹 Upcoming Popular UK Dividends")
 st.markdown("""This dashboard tracks upcoming UK dividend events for major blue-chip companies  
