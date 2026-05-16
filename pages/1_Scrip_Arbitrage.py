@@ -3,6 +3,22 @@ st.set_page_config(page_title="Scrip Arbitrage", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import yfinance as yf
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 apply_bloomberg_theme()
 
 st.title("🔹 Scrip Dividend Arbitrage (LMP example)")
