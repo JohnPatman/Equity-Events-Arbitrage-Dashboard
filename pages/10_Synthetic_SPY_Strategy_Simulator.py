@@ -754,9 +754,3 @@ if run:
 
 else:
     st.info("Adjust parameters above and click **Run Simulation**.")
-
-      
-        
-      
-      Stop Claude
-    
