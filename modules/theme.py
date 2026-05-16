@@ -264,6 +264,74 @@ opacity: 0.3;
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 [data-testid="stToolbar"] { visibility: hidden; }
+
+/* ---- Input Boxes (dark background, warm white text, gold border) ---- */
+.stNumberInput input,
+.stTextInput input,
+input[type="number"],
+input[type="text"] {
+  background-color: #1A1A0E !important;
+    color: #E8E0D0 !important;
+      border: 1px solid #B8860B !important;
+        -webkit-text-fill-color: #E8E0D0 !important;
+        }
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+          background-color: #1A1A0E !important;
+            color: #E8E0D0 !important;
+              -webkit-text-fill-color: #E8E0D0 !important;
+                box-shadow: 0 0 0 2px #B8860B !important;
+                  outline: none !important;
+                  }
+
+                  /* ---- Dropdowns (select boxes) ---- */
+                  .stSelectbox select,
+                  div[data-baseweb="select"] > div,
+                  div[data-baseweb="select"] > div > div,
+                  div[data-baseweb="select"] input {
+                    background-color: #1A1A0E !important;
+                      color: #E8E0D0 !important;
+                        border: 1px solid #B8860B !important;
+                        }
+
+                        /* ---- Paragraph and body text — warm white instead of orange ---- */
+                        .stMarkdown p,
+                        .e1nzilvr5 p,
+                        div[data-testid="stMarkdownContainer"] p {
+                          color: #E8E0D0 !important;
+                            -webkit-text-fill-color: #E8E0D0 !important;
+                            }
+
+                            /* ---- List items in main content — warm white ---- */
+                            .stMarkdown li,
+                            div[data-testid="stMarkdownContainer"] li,
+                            ul li, ol li {
+                              color: #E8E0D0 !important;
+                                -webkit-text-fill-color: #E8E0D0 !important;
+                                }
+
+                                /* ---- Sidebar nav list items stay orange ---- */
+                                [data-testid="stSidebar"] li,
+                                [data-testid="stSidebar"] a,
+                                [data-testid="stSidebar"] .stMarkdown li {
+                                  color: #FF8C00 !important;
+                                    -webkit-text-fill-color: #FF8C00 !important;
+                                    }
+
+                                    /* ---- Widget labels stay orange ---- */
+                                    label p,
+                                    .e1y5xkzn3 p,
+                                    [data-testid="stWidgetLabel"] p {
+                                      color: #FF8C00 !important;
+                                        -webkit-text-fill-color: #FF8C00 !important;
+                                        }
+
+                                        /* ---- Alert / info box text ---- */
+                                        [data-testid="stAlert"] p,
+                                        [data-testid="stAlertContainer"] p {
+                                          color: #E8E0D0 !important;
+                                            -webkit-text-fill-color: #E8E0D0 !important;
+                                            }
 </style>
 """
 
