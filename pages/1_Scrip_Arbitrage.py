@@ -1,6 +1,8 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import yfinance as yf
+apply_bloomberg_theme()
 
 st.title("🔹 Scrip Dividend Arbitrage (LMP example)")
 st.markdown("""
