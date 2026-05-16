@@ -7,6 +7,22 @@ from datetime import datetime
 from modules.arbitrage.airtel import fetch_airtel_latest
 apply_bloomberg_theme()
 from modules.arbitrage.fx import get_market_fx_usd_gbp
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🔹 Dividend FX & Arbitrage (Airtel example)")
 st.markdown("""This dashboard evaluates dividend currency arbitrage opportunities for Airtel Africa.
