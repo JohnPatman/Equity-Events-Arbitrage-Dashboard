@@ -1,4 +1,6 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
+apply_bloomberg_theme()
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
