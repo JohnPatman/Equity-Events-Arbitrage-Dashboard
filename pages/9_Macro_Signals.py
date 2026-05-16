@@ -1,4 +1,6 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
+apply_bloomberg_theme()
 import pandas as pd
 import altair as alt
 
