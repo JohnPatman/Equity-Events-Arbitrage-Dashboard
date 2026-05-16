@@ -1,4 +1,5 @@
 import streamlit as st
+from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import altair as alt
 
@@ -7,6 +8,7 @@ from modules.earnings.earnings import load_earnings
 
 # ===========================
 # Page Title & Intro
+apply_bloomberg_theme()
 # ===========================
 st.title("🔹 Earnings Intelligence – Surprise Analysis")
 
