@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Macro Signals", layout="wide")
 from modules.theme import apply_bloomberg_theme
 apply_bloomberg_theme()
 import pandas as pd
