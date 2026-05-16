@@ -5,6 +5,22 @@ import pandas as pd
 import altair as alt
 apply_bloomberg_theme()
 import os
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🔹 Dividend Growth (Unilever example) (2010–2025)")
 st.markdown("""This dashboard analyses long-term dividend growth using Unilever as a model.
