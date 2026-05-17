@@ -33,35 +33,6 @@ It provides:
 - lender-vs-borrower election analysis.
 """)
 
-# ------------------------ Styling ------------------------
-st.markdown("""
-<style>
-div.stTextInput > div > div > input,
-div[data-baseweb="input"] input {
-    background-color: #e9f2ff !important;
-    font-size: 1.15rem !important;
-    font-weight: 700 !important;
-    color: #000 !important;
-    border-radius: 8px !important;
-    border: 1px solid #c7d9ff !important;
-    padding: 10px !important;
-}
-
-div[data-baseweb="select"] > div {
-    background-color: #e9f2ff !important;
-    font-size: 1.15rem !important;
-    font-weight: 700 !important;
-    color: #000 !important;
-    border-radius: 8px !important;
-    border: 1px solid #c7d9ff !important;
-    padding: 12px !important;
-    min-height: 48px !important;
-    display: flex !important;
-    align-items: center !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # ------------------------ Load Scrip Data ------------------------
 try:
     df_scrip = pd.read_csv("Data/lmp_scrip_dividends.csv")
