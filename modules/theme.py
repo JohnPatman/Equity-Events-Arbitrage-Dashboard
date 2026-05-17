@@ -19,6 +19,12 @@ html, body, [class*="css"] {
     background-color: #000000 !important;
 }
 
+/* ---- Hide header bar ---- */
+[data-testid="stHeader"] {
+    background-color: #000000 !important;
+    display: none !important;
+}
+
 /* ---- Sidebar ---- */
 [data-testid="stSidebar"] {
     background-color: #0A0A0A !important;
