@@ -1,13 +1,4 @@
 import streamlit as st
-
-st.markdown("""
-<style>
-[data-testid="stHeader"] {
-    background-color: #000000 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 from modules.theme import apply_bloomberg_theme
 
 st.set_page_config(
@@ -20,7 +11,6 @@ apply_bloomberg_theme()
 
 st.title("Equity Events & Arbitrage Dashboard")
 st.write("""
-
 Use the sidebar on the left to navigate through the tools:
 - **Scrip Arbitrage**
 - **Dividend Growth Model**
