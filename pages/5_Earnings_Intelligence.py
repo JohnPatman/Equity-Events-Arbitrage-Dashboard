@@ -3,37 +3,16 @@ st.set_page_config(page_title="Earnings Intelligence", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import altair as alt
-
 from modules.earnings.earnings import load_earnings
-st.markdown("""
-<style>
-div[data-baseweb="base-input"] {
-    background-color: #1A1A0E !important;
-    border-color: #B8860B !important;
-}
-div[data-baseweb="base-input"] input {
-    background-color: #1A1A0E !important;
-    color: #FF8C00 !important;
-    -webkit-text-fill-color: #FF8C00 !important;
-}
-div[data-baseweb="input"] {
-    background-color: #1A1A0E !important;
-}
-</style>
-""", unsafe_allow_html=True)
 
-
-# ===========================
-# Page Title & Intro
 apply_bloomberg_theme()
-# ===========================
+
 st.title("🔹 Earnings Intelligence – Surprise Analysis")
 
 st.markdown("""
 This dashboard analyses earnings surprise behaviour for US equities using locally stored S&P 100 earnings CSVs.
 
 It:
-
 - loads historical EPS estimates and reported results,
 - calculates surprise percentages and volatility,
 - displays beat-rate statistics,
@@ -41,195 +20,82 @@ It:
 - visualises the last 6 quarters with clear bar charts.
 """)
 
-
-# ===========================
-# S&P 100 Universe
-# ===========================
 SP100 = {
-    "AAPL": "Apple",
-    "MSFT": "Microsoft",
-    "AMZN": "Amazon",
-    "NVDA": "NVIDIA",
-    "GOOGL": "Alphabet (Class A)",
-    "GOOG": "Alphabet (Class C)",
-    "META": "Meta Platforms",
-    "TSLA": "Tesla",
-    "BRK-B": "Berkshire Hathaway (B)",
-    "UNH": "UnitedHealth",
-    "XOM": "Exxon Mobil",
-    "JNJ": "Johnson & Johnson",
-    "JPM": "JPMorgan Chase",
-    "V": "Visa",
-    "AVGO": "Broadcom",
-    "LLY": "Eli Lilly",
-    "PG": "Procter & Gamble",
-    "CVX": "Chevron",
-    "HD": "Home Depot",
-    "MA": "Mastercard",
-    "MRK": "Merck",
-    "ABBV": "AbbVie",
-    "PEP": "PepsiCo",
-    "PFE": "Pfizer",
-    "KO": "Coca-Cola",
-    "COST": "Costco",
-    "TMO": "Thermo Fisher",
-    "WMT": "Walmart",
-    "MCD": "McDonald's",
-    "BAC": "Bank of America",
-    "DIS": "Walt Disney",
-    "CSCO": "Cisco",
-    "ORCL": "Oracle",
-    "ABT": "Abbott Labs",
-    "DHR": "Danaher",
-    "CRM": "Salesforce",
-    "ACN": "Accenture",
-    "CVS": "CVS Health",
-    "LIN": "Linde",
-    "QCOM": "Qualcomm",
-    "TXN": "Texas Instruments",
-    "NEE": "NextEra Energy",
-    "UNP": "Union Pacific",
-    "PM": "Philip Morris",
-    "AMD": "Advanced Micro Devices",
-    "BMY": "Bristol Myers Squibb",
-    "MS": "Morgan Stanley",
-    "RTX": "RTX Corp.",
-    "UPS": "United Parcel Service",
-    "AMT": "American Tower",
-    "INTC": "Intel",
-    "BLK": "BlackRock",
-    "LOW": "Lowe's",
-    "SCHW": "Charles Schwab",
-    "CAT": "Caterpillar",
-    "AMAT": "Applied Materials",
-    "MDT": "Medtronic",
-    "GS": "Goldman Sachs",
-    "NOW": "ServiceNow",
-    "BKNG": "Booking Holdings",
-    "ADBE": "Adobe",
-    "AXP": "American Express",
-    "T": "AT&T",
-    "DE": "Deere & Co.",
-    "ISRG": "Intuitive Surgical",
-    "VRTX": "Vertex Pharma",
-    "C": "Citigroup",
-    "SPGI": "S&P Global",
-    "SYK": "Stryker",
-    "MDLZ": "Mondelez",
-    "ADI": "Analog Devices",
-    "MU": "Micron Technology",
-    "REGN": "Regeneron",
-    "ELV": "Elevance Health",
-    "LRCX": "Lam Research",
-    "COP": "ConocoPhillips",
-    "MMC": "Marsh & McLennan",
-    "GILD": "Gilead Sciences",
-    "NFLX": "Netflix",
-    "LMT": "Lockheed Martin",
-    "FDX": "FedEx",
-    "KLAC": "KLA Corp.",
-    "ZTS": "Zoetis",
-    "HON": "Honeywell",
-    "EQIX": "Equinix",
-    "MAR": "Marriott",
-    "APD": "Air Products & Chemicals",
-    "WM": "Waste Management",
-    "CTAS": "Cintas",
-    "SO": "Southern Co.",
-    "PANW": "Palo Alto Networks",
-    "CSX": "CSX Corp.",
-    "NSC": "Norfolk Southern",
-    "ICE": "Intercontinental Exchange",
-    "ADP": "Automatic Data Processing",
-    "BDX": "Becton Dickinson",
-    "PGR": "Progressive",
-    "AON": "Aon",
-    "AEP": "American Electric Power",
-    "ETN": "Eaton"
+    "AAPL": "Apple", "MSFT": "Microsoft", "AMZN": "Amazon", "NVDA": "NVIDIA",
+    "GOOGL": "Alphabet (Class A)", "GOOG": "Alphabet (Class C)", "META": "Meta Platforms",
+    "TSLA": "Tesla", "BRK-B": "Berkshire Hathaway (B)", "UNH": "UnitedHealth",
+    "XOM": "Exxon Mobil", "JNJ": "Johnson & Johnson", "JPM": "JPMorgan Chase",
+    "V": "Visa", "AVGO": "Broadcom", "LLY": "Eli Lilly", "PG": "Procter & Gamble",
+    "CVX": "Chevron", "HD": "Home Depot", "MA": "Mastercard", "MRK": "Merck",
+    "ABBV": "AbbVie", "PEP": "PepsiCo", "PFE": "Pfizer", "KO": "Coca-Cola",
+    "COST": "Costco", "TMO": "Thermo Fisher", "WMT": "Walmart", "MCD": "McDonald's",
+    "BAC": "Bank of America", "DIS": "Walt Disney", "CSCO": "Cisco", "ORCL": "Oracle",
+    "ABT": "Abbott Labs", "DHR": "Danaher", "CRM": "Salesforce", "ACN": "Accenture",
+    "CVS": "CVS Health", "LIN": "Linde", "QCOM": "Qualcomm", "TXN": "Texas Instruments",
+    "NEE": "NextEra Energy", "UNP": "Union Pacific", "PM": "Philip Morris",
+    "AMD": "Advanced Micro Devices", "BMY": "Bristol Myers Squibb", "MS": "Morgan Stanley",
+    "RTX": "RTX Corp.", "UPS": "United Parcel Service", "AMT": "American Tower",
+    "INTC": "Intel", "BLK": "BlackRock", "LOW": "Lowe's", "SCHW": "Charles Schwab",
+    "CAT": "Caterpillar", "AMAT": "Applied Materials", "MDT": "Medtronic",
+    "GS": "Goldman Sachs", "NOW": "ServiceNow", "BKNG": "Booking Holdings",
+    "ADBE": "Adobe", "AXP": "American Express", "T": "AT&T", "DE": "Deere & Co.",
+    "ISRG": "Intuitive Surgical", "VRTX": "Vertex Pharma", "C": "Citigroup",
+    "SPGI": "S&P Global", "SYK": "Stryker", "MDLZ": "Mondelez", "ADI": "Analog Devices",
+    "MU": "Micron Technology", "REGN": "Regeneron", "ELV": "Elevance Health",
+    "LRCX": "Lam Research", "COP": "ConocoPhillips", "MMC": "Marsh & McLennan",
+    "GILD": "Gilead Sciences", "NFLX": "Netflix", "LMT": "Lockheed Martin",
+    "FDX": "FedEx", "KLAC": "KLA Corp.", "ZTS": "Zoetis", "HON": "Honeywell",
+    "EQIX": "Equinix", "MAR": "Marriott", "APD": "Air Products & Chemicals",
+    "WM": "Waste Management", "CTAS": "Cintas", "SO": "Southern Co.",
+    "PANW": "Palo Alto Networks", "CSX": "CSX Corp.", "NSC": "Norfolk Southern",
+    "ICE": "Intercontinental Exchange", "ADP": "Automatic Data Processing",
+    "BDX": "Becton Dickinson", "PGR": "Progressive", "AON": "Aon",
+    "AEP": "American Electric Power", "ETN": "Eaton"
 }
 
-# Build nice labels like "AAPL – Apple"
 sp100_labels = [f"{ticker} – {name}" for ticker, name in SP100.items()]
 default_index = sp100_labels.index("AAPL – Apple") if "AAPL – Apple" in sp100_labels else 0
 
 selection = st.selectbox("Select S&P 100 Company", sp100_labels, index=default_index)
-ticker = selection.split(" – ")[0]  # back to pure ticker, e.g. "AAPL"
+ticker = selection.split(" – ")[0]
 
-
-# ===========================
-# Load Static CSV Earnings
-# ===========================
 df_earn, stats_earn = load_earnings(ticker)
 
 if df_earn is None or df_earn.empty:
     st.warning(f"No earnings data found for {ticker}. Make sure `Data/earnings/{ticker}.csv` exists.")
     st.stop()
 
-# Ensure datetime
 df_earn["Earnings Date"] = pd.to_datetime(df_earn["Earnings Date"], errors="coerce")
-
-# Only completed (reported) quarters
 hist = df_earn[df_earn["Reported EPS"].notna()].copy()
+
 if hist.empty:
     st.warning(f"{ticker} has no reported earnings history.")
     st.stop()
 
-
-# ===========================
-# Top Metrics
-# ===========================
 c1, c2, c3 = st.columns(3)
 
-# Next earnings date
 next_dt = stats_earn.get("next_date")
-if isinstance(next_dt, pd.Timestamp) and pd.notna(next_dt):
-    next_dt_str = next_dt.strftime("%d %b %Y")
-else:
-    next_dt_str = "N/A"
+next_dt_str = next_dt.strftime("%d %b %Y") if isinstance(next_dt, pd.Timestamp) and pd.notna(next_dt) else "N/A"
 c1.metric("Next Earnings Date", next_dt_str)
 
-# Next EPS estimate
 next_eps = stats_earn.get("next_eps")
-if next_eps is not None and pd.notna(next_eps):
-    next_eps_str = f"{float(next_eps):.2f}"
-else:
-    next_eps_str = "N/A"
+next_eps_str = f"{float(next_eps):.2f}" if next_eps is not None and pd.notna(next_eps) else "N/A"
 c2.metric("Consensus EPS (Next)", next_eps_str)
 
-# Beat rate
 beat_rate = stats_earn.get("beat_rate")
-if beat_rate is not None and pd.notna(beat_rate):
-    beat_rate_str = f"{float(beat_rate):.1f}%"
-else:
-    beat_rate_str = "N/A"
+beat_rate_str = f"{float(beat_rate):.1f}%" if beat_rate is not None and pd.notna(beat_rate) else "N/A"
 c3.metric("Beat Rate (%)", beat_rate_str)
 
-
-# ===========================
-# Surprise Statistics
-# ===========================
 st.subheader("Surprise Statistics")
 
 avg_s = stats_earn.get("avg_surprise")
 std_s = stats_earn.get("std_surprise")
 
-if avg_s is not None and pd.notna(avg_s):
-    st.write(f"- **Average surprise:** {float(avg_s):.2f}%")
-else:
-    st.write("- **Average surprise:** N/A")
+st.write(f"- **Average surprise:** {float(avg_s):.2f}%" if avg_s is not None and pd.notna(avg_s) else "- **Average surprise:** N/A")
+st.write(f"- **Surprise volatility (stdev):** {float(std_s):.2f} ppts" if std_s is not None and pd.notna(std_s) else "- **Surprise volatility (stdev):** N/A")
 
-if std_s is not None and pd.notna(std_s):
-    st.write(f"- **Surprise volatility (stdev):** {float(std_s):.2f} ppts")
-else:
-    st.write("- **Surprise volatility (stdev):** N/A")
-
-
-# ===========================
-# Recent 6 Quarters Table
-# ===========================
 st.subheader("Recent Reported Quarters")
 
-# newest → oldest, then take last 6 in chronological order
 recent = hist.sort_values("Earnings Date", ascending=False).head(6)
 recent = recent.sort_values("Earnings Date", ascending=True).copy()
 
@@ -241,7 +107,6 @@ recent_display["Surprise(%)"] = recent_display["Surprise(%)"].round(2)
 
 st.dataframe(recent_display, use_container_width=True)
 
-# Download button
 csv_data = recent_display.to_csv(index=False).encode("utf-8")
 st.download_button(
     label="📥 Download CSV",
@@ -250,10 +115,6 @@ st.download_button(
     mime="text/csv",
 )
 
-
-# ===========================
-# Bar Chart – Last 6 Quarters
-# ===========================
 st.subheader("Earnings Surprise – Last 6 Quarters")
 
 chart = (

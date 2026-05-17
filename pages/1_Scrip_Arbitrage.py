@@ -3,22 +3,7 @@ st.set_page_config(page_title="Scrip Arbitrage", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import yfinance as yf
-st.markdown("""
-<style>
-div[data-baseweb="base-input"] {
-    background-color: #1A1A0E !important;
-    border-color: #B8860B !important;
-}
-div[data-baseweb="base-input"] input {
-    background-color: #1A1A0E !important;
-    color: #FF8C00 !important;
-    -webkit-text-fill-color: #FF8C00 !important;
-}
-div[data-baseweb="input"] {
-    background-color: #1A1A0E !important;
-}
-</style>
-""", unsafe_allow_html=True)
+
 apply_bloomberg_theme()
 
 st.title("🔹 Scrip Dividend Arbitrage (LMP example)")
@@ -118,20 +103,13 @@ else:
 
     advantage = (values[best] / values[lender] - 1) * 100 if values[lender] else 0
 
-    # Build cleaned comparison table
     comp_df = pd.DataFrame({
         "Election Option": ["Cash", "Scrip"],
         "Value (£)": [f"£{cash_value:,.0f}", f"£{scrip_value:,.0f}"]
     })
 
-    # Display with no index (the part you wanted fixed)
-    st.dataframe(
-        comp_df,
-        hide_index=True,
-        use_container_width=True
-    )
+    st.dataframe(comp_df, hide_index=True, use_container_width=True)
 
-    # Messaging logic
     if best == lender:
         st.success(f"Given lender = {lender}, best choice is to match.")
     else:

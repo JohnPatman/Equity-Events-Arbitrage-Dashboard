@@ -3,24 +3,9 @@ st.set_page_config(page_title="Dividend Growth Model", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 import altair as alt
-apply_bloomberg_theme()
 import os
-st.markdown("""
-<style>
-div[data-baseweb="base-input"] {
-    background-color: #1A1A0E !important;
-    border-color: #B8860B !important;
-}
-div[data-baseweb="base-input"] input {
-    background-color: #1A1A0E !important;
-    color: #FF8C00 !important;
-    -webkit-text-fill-color: #FF8C00 !important;
-}
-div[data-baseweb="input"] {
-    background-color: #1A1A0E !important;
-}
-</style>
-""", unsafe_allow_html=True)
+
+apply_bloomberg_theme()
 
 st.title("🔹 Dividend Growth (Unilever example) (2010–2025)")
 st.markdown("""This dashboard analyses long-term dividend growth using Unilever as a model.
@@ -34,15 +19,14 @@ It processes 15+ years of dividend history to:
 This dashboard is ideal for studying dividend stability, assessing payout trajectory,  
 and understanding the characteristics of mature, cash-generative companies.
 """)
+
 hist_path = "Data/history_ulvr_2010_2025.csv"
 
 if os.path.exists(hist_path):
 
     hist = pd.read_csv(hist_path)
-
     hist["Pay Date"] = pd.to_datetime(hist["Pay Date"], errors="coerce")
     hist = hist.dropna(subset=["Pay Date"]).sort_values("Pay Date")
-
     hist["Year"] = hist["Pay Date"].dt.year.astype(int)
 
     yearly = (
@@ -53,7 +37,6 @@ if os.path.exists(hist_path):
     )
 
     yearly["YoY %"] = yearly["Avg Dividend (£)"].pct_change() * 100
-
     yearly["Colour"] = yearly["YoY %"].apply(
         lambda x: "green" if x > 0 else ("red" if x < 0 else "grey")
     )
@@ -63,7 +46,6 @@ if os.path.exists(hist_path):
     yrs = len(yearly) - 1
     cagr = ((last / first) ** (1/yrs) - 1) * 100
 
-    # --- Line chart ---
     line = (
         alt.Chart(yearly)
         .mark_line(point=True)
@@ -76,7 +58,6 @@ if os.path.exists(hist_path):
         )
     )
 
-    # --- YoY bars ---
     bars = (
         alt.Chart(yearly)
         .mark_bar()
