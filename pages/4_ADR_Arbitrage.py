@@ -9,9 +9,23 @@ from modules.arbitrage.adr_arbitrage import (
     asml_arbitrage,
     azn_arbitrage,
 )
-
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 apply_bloomberg_theme()
-
 st.title("🔹 ADR vs Local Share Arbitrage")
 st.markdown("""This dashboard compares ADR prices against their underlying local shares  
 to detect cross-market valuation gaps.
@@ -27,6 +41,7 @@ pricing discrepancies, and ADR/local conversion opportunities.
 """)
 
 def display_adr_block(name, result):
+
     adr_price = float(result["adr_price"])
     local_price = float(result["local_price"])
     fx = float(result["fx_local_to_usd"])
@@ -36,16 +51,31 @@ def display_adr_block(name, result):
     rec = result["recommendation"]
 
     colA, colB, colC, colD = st.columns(4)
-    with colA: st.metric(f"{name} ADR Price (USD)", f"${adr_price:.2f}")
-    with colB: st.metric(f"{name} Local Price", f"{local_price:,.2f}")
-    with colC: st.metric("FX (Local → USD)", f"{fx:.4f}")
+
+    with colA:
+        st.metric(f"{name} ADR Price (USD)", f"${adr_price:.2f}")
+
+    with colB:
+        st.metric(f"{name} Local Price", f"{local_price:,.2f}")
+
+    with colC:
+        st.metric("FX (Local → USD)", f"{fx:.4f}")
+
     with colD:
         ratio_disp = str(ratio).rstrip("0").rstrip(".")
         st.metric("ADR Ratio", ratio_disp)
 
     col1, col2 = st.columns(2)
-    with col1: st.metric("Local Value in USD (after ratio)", f"${local_equiv:,.2f}")
-    with col2: st.metric("ADR Premium / Discount", f"{arb_pct:.2f}%")
+    with col1:
+        st.metric(
+            "Local Value in USD (after ratio)",
+            f"${local_equiv:,.2f}"
+        )
+    with col2:
+        st.metric(
+            "ADR Premium / Discount",
+            f"{arb_pct:.2f}%"
+        )
 
     if arb_pct > 0:
         st.error(f"{rec}")

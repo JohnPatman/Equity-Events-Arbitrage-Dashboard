@@ -3,15 +3,31 @@ st.set_page_config(page_title="Currency Arbitrage", layout="wide")
 from modules.theme import apply_bloomberg_theme
 import pandas as pd
 from datetime import datetime
-from modules.arbitrage.airtel import fetch_airtel_latest
-from modules.arbitrage.fx import get_market_fx_usd_gbp
 
+from modules.arbitrage.airtel import fetch_airtel_latest
 apply_bloomberg_theme()
+from modules.arbitrage.fx import get_market_fx_usd_gbp
+st.markdown("""
+<style>
+div[data-baseweb="base-input"] {
+    background-color: #1A1A0E !important;
+    border-color: #B8860B !important;
+}
+div[data-baseweb="base-input"] input {
+    background-color: #1A1A0E !important;
+    color: #FF8C00 !important;
+    -webkit-text-fill-color: #FF8C00 !important;
+}
+div[data-baseweb="input"] {
+    background-color: #1A1A0E !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🔹 Dividend FX & Arbitrage (Airtel example)")
 st.markdown("""This dashboard evaluates dividend currency arbitrage opportunities for Airtel Africa.
 
-It uses the company's published USD→GBP FX rate and compares it to live market FX to:
+It uses the company’s published USD→GBP FX rate and compares it to live market FX to:
 - identify whether GBP or USD is the richer election,
 - quantify pure FX arbitrage percentages,
 - compute borrow-arbitrage based on lender and recipient elections,
@@ -85,6 +101,7 @@ try:
         }
     )
 
+    # Store values
     st.session_state["fx_company"] = fx_company
     st.session_state["fx_market"] = fx_market
     st.session_state["usd_div"] = usd_div
@@ -105,6 +122,7 @@ fx_market = st.session_state["fx_market"]
 usd_div = st.session_state["usd_div"]
 rich_ccy = st.session_state["rich_ccy"]
 
+# Owed
 if lender_election == "USD":
     owe_usd = usd_div * shares
     owe_gbp = owe_usd * fx_company
@@ -112,6 +130,7 @@ else:
     owe_gbp = usd_div * shares * fx_company
     owe_usd = owe_gbp / fx_market
 
+# Received
 if your_election == "USD":
     recv_usd = usd_div * shares
     recv_gbp = recv_usd * fx_company
@@ -119,6 +138,7 @@ else:
     recv_gbp = usd_div * shares * fx_company
     recv_usd = recv_gbp / fx_market
 
+# Convert to lender currency
 if lender_election == "USD":
     eff = recv_usd if your_election == "USD" else recv_gbp / fx_market
     owe = owe_usd
@@ -147,15 +167,18 @@ st.header("Optimal Dividend Currency Election")
 if lender_election == "USD":
     elect_usd = usd_div * shares
     elect_gbp = elect_usd * fx_company / fx_market
+
     if elect_gbp > elect_usd:
         diff = (elect_gbp / elect_usd - 1) * 100
         st.success(f"Given lender = USD → Elect **GBP** (+{diff:.2f}%)")
     else:
         diff = (elect_usd / elect_gbp - 1) * 100
         st.success(f"Given lender = USD → Elect **USD** (+{diff:.2f}%)")
+
 else:
     elect_gbp = usd_div * shares * fx_company
     elect_usd = usd_div * shares * fx_market
+
     if elect_usd > elect_gbp:
         diff = (elect_usd / elect_gbp - 1) * 100
         st.success(f"Given lender = GBP → Elect **USD** (+{diff:.2f}%)")
