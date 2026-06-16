@@ -50,25 +50,62 @@ st.write(f"**Quarter:** {quarter}")
 st.write(f"**Election Deadline:** {deadline}")
 st.write(f"**Scrip Issue Price:** {scrip_price:.2f} pence")
 
+
+# ------------------------ Helper: robust last close ------------------------
+def _last_close(df: pd.DataFrame):
+    """
+    Return the last 'Close' as a float, robust to yfinance changes.
+
+    yfinance now returns MultiIndex columns (Price, Ticker) even for a
+    single ticker, so df["Close"] becomes a DataFrame and float() on it
+    raises TypeError. We flatten the columns and coerce to a scalar.
+    """
+    if df is None or df.empty:
+        return None
+
+    if isinstance(df.columns, pd.MultiIndex):
+        df = df.copy()
+        df.columns = df.columns.get_level_values(0)
+
+    if "Close" not in df.columns:
+        return None
+
+    closes = df["Close"].dropna()
+    if closes.empty:
+        return None
+    val = closes.iloc[-1]
+    if isinstance(val, pd.Series):
+        val = val.iloc[0]
+    return float(val)
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def fetch_close_window(ticker: str, start: str, end: str):
+    df = yf.download(ticker, start=start, end=end, progress=False, auto_adjust=False)
+    return _last_close(df)
+
+
 # ------------------------ Fetch Market Price ------------------------
 ticker = "LMP.L"
-deadline_dt = pd.to_datetime(deadline, errors="coerce")
+deadline_dt = pd.to_datetime(deadline, errors="coerce", dayfirst=True)
 market_pence = None
 
 if pd.notna(deadline_dt):
     start = (deadline_dt - pd.Timedelta(days=5)).strftime("%Y-%m-%d")
     end = (deadline_dt + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    data = yf.download(ticker, start=start, end=end, progress=False)
-
-    if not data.empty:
-        raw_price_gbp = float(data["Close"].iloc[-1])
-        price_gbp = raw_price_gbp / 100.0 if raw_price_gbp > 20 else raw_price_gbp
-        market_pence = price_gbp * 100.0
+    try:
+        raw_price_gbp = fetch_close_window(ticker, start, end)
+        if raw_price_gbp is not None:
+            # LMP quotes in pence; Yahoo sometimes returns pounds, sometimes split-adjusted noise
+            price_gbp = raw_price_gbp / 100.0 if raw_price_gbp > 20 else raw_price_gbp
+            market_pence = price_gbp * 100.0
+    except Exception as e:
+        st.warning(f"Market price fetch failed ({e}). Use the manual override below.")
 
 if market_pence:
     st.metric("Market Price (pence)", f"{market_pence:.2f}p")
 else:
-    st.warning("Could not fetch market price.")
+    st.warning("Could not fetch market price — enter a manual override below.")
 
 # ------------------------ Arbitrage Calculator ------------------------
 st.subheader("Scrip vs Cash Arbitrage")

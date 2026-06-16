@@ -42,12 +42,10 @@ def fetch_scrip_tables():
         except Exception:
             continue
 
-        # detect if table includes scrip data
         cols = [c.lower() for c in df.columns]
         if not any("scrip" in c for c in cols):
             continue
 
-        # normalise columns
         df.columns = [
             "Dividend" if "dividend" in c.lower() else
             "Election deadline" if "election" in c.lower() else
@@ -65,7 +63,6 @@ def fetch_scrip_tables():
 
     df = pd.concat(cleaned, ignore_index=True)
 
-    # clean scrip price
     df["Scrip Calculation Price"] = (
         df["Scrip Calculation Price"]
         .astype(str)
@@ -75,7 +72,6 @@ def fetch_scrip_tables():
     )
 
     df["Scrip Calculation Price"] = pd.to_numeric(df["Scrip Calculation Price"], errors="coerce")
-
     df = df.dropna(subset=["Scrip Calculation Price"])
 
     df.to_csv("lmp_scrip_dividends.csv", index=False)
@@ -87,11 +83,31 @@ def fetch_scrip_tables():
 # =====================================
 # PRICE FETCHER — FIX YAHOO'S BAD DATA
 # =====================================
+def _last_close(df: pd.DataFrame):
+    """
+    Last 'Close' as a float, robust to yfinance now returning MultiIndex
+    columns (Price, Ticker) even for a single ticker.
+    """
+    if df is None or df.empty:
+        return None
+    if isinstance(df.columns, pd.MultiIndex):
+        df = df.copy()
+        df.columns = df.columns.get_level_values(0)
+    if "Close" not in df.columns:
+        return None
+    closes = df["Close"].dropna()
+    if closes.empty:
+        return None
+    val = closes.iloc[-1]
+    if isinstance(val, pd.Series):
+        val = val.iloc[0]
+    return float(val)
+
+
 def get_lmp_price_pence(deadline_date):
     """
     Fetches LMP share price from Yahoo Finance.
-    Yahoo often returns 100× too large (split-adjusted).
-    This function automatically corrects it.
+    Yahoo often returns 100x too large (split-adjusted). This corrects it.
     Returns price in pence.
     """
     ticker = "LMP.L"
@@ -106,13 +122,12 @@ def get_lmp_price_pence(deadline_date):
         start=start,
         end=end,
         progress=False,
-        auto_adjust=False
+        auto_adjust=False,
     )
 
-    if data.empty:
+    raw_price_gbp = _last_close(data)
+    if raw_price_gbp is None:
         raise ValueError("No price data returned by Yahoo Finance.")
-
-    raw_price_gbp = float(data["Close"].iloc[-1])
 
     # Fix Yahoo bug: LMP has NEVER been £180+; this is split-adjusted noise
     if raw_price_gbp > 20:
@@ -132,21 +147,11 @@ def get_lmp_price_pence(deadline_date):
 # ARBITRAGE ENGINE
 # =====================================
 def calculate_arbitrage(df):
-    """
-    Uses latest scrip entry + correct price to compute:
-      • Cash dividend value
-      • Scrip shares issued
-      • Scrip value
-      • Arbitrage P&L
-    """
-    latest = df.iloc[0]  # newest entry
+    latest = df.iloc[0]
     print("\nLatest Scrip Record:")
     print(latest)
 
-    # parse date
     deadline = pd.to_datetime(latest["Election deadline"], dayfirst=True)
-
-    # get corrected LMP price
     share_price_p = get_lmp_price_pence(deadline)
 
     scrip_price_p = float(latest["Scrip Calculation Price"])
@@ -158,16 +163,10 @@ def calculate_arbitrage(df):
     print(f"Cash Dividend Rate: {div_p}p")
     print(f"Shares Tested: {SHARES:,}")
 
-    # cash value in pence
     cash_value_p = SHARES * div_p
-
-    # scrip shares issued
     scrip_shares = (div_p / scrip_price_p) * SHARES
-
-    # value of scrip shares at market price
     scrip_value_p = scrip_shares * share_price_p
 
-    # convert to GBP
     cash_gbp = cash_value_p / 100
     scrip_gbp = scrip_value_p / 100
     pnl_gbp = scrip_gbp - cash_gbp

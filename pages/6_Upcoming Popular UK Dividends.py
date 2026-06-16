@@ -3,8 +3,9 @@ st.set_page_config(page_title="Upcoming Popular UK Dividends", layout="wide")
 from modules.theme import apply_bloomberg_theme
 apply_bloomberg_theme()
 import pandas as pd
-import glob, os
-from datetime import datetime
+
+from modules.dividends.uk_dividends import get_uk_dividend_view, raw_static_extract
+
 st.markdown("""
 <style>
 div[data-baseweb="base-input"] {
@@ -23,23 +24,17 @@ div[data-baseweb="input"] {
 """, unsafe_allow_html=True)
 
 st.title("🔹 Upcoming Popular UK Dividends")
-st.markdown("""This dashboard tracks upcoming UK dividend events for major blue-chip companies  
+st.markdown("""This dashboard tracks upcoming UK dividend events for major blue-chip companies
 (HSBC, Unilever, AstraZeneca, GSK, Rio Tinto).
 
-The tool automatically:
-- reads the latest dividend announcements scraped from company IR websites,
-- standardises ex-dates, pay dates and dividend amounts,
-- highlights whether each company has an upcoming dividend or not,
-- displays a clean forward calendar of expected payments.
-
-This dashboard is ideal for monitoring dividend timetables, running income strategies,  
-and staying ahead of corporate actions in the UK market.
+The tool:
+- pulls the most recently declared dividend and historical cadence live from market data,
+- shows the next ex-date / pay date where the company has formally declared one,
+- projects an **indicative** next ex-date from payment cadence where one hasn't been declared yet (clearly flagged),
+- falls back to stored announcements if live data is unavailable.
 """)
 
-DATA_DIR = "Data"
-files = glob.glob(f"{DATA_DIR}/upcoming_*.csv")
-
-company_names = {
+COMPANIES = {
     "HSBA": "HSBC Holdings",
     "ULVR": "Unilever PLC",
     "AZN":  "AstraZeneca PLC",
@@ -47,64 +42,59 @@ company_names = {
     "RIO":  "Rio Tinto PLC",
 }
 
-status_rows = []
-upcoming_rows = []
 
-today = datetime.now().date()
-
-for ticker, full_name in company_names.items():
-    file = f"{DATA_DIR}/upcoming_{ticker.lower()}.csv"
-
-    if not os.path.exists(file):
-        status_rows.append([ticker, full_name, "⚠ No data collected yet"])
-        continue
-
-    df = pd.read_csv(file)
-    df.columns = [c.strip() for c in df.columns]
-
-    rename_map = {
-        "PayDate": "Pay Date", "Payment Date": "Pay Date",
-        "ExDiv": "Ex Date", "Ex-dividend date": "Ex Date"
-    }
-    df.rename(columns={k:v for k,v in rename_map.items() if k in df.columns}, inplace=True)
-
-    df["Dividend"] = df.get("Dividend", "Dividend rate to be announced").fillna("Dividend rate to be announced")
-    df["Pay Date"] = pd.to_datetime(df.get("Pay Date"), errors="coerce").dt.date
-    df["Ex Date"]  = pd.to_datetime(df.get("Ex Date"),  errors="coerce").dt.date
-
-    future = df[df["Pay Date"].notna() & (df["Pay Date"] >= today)].sort_values("Pay Date")
-
-    if future.empty:
-        status_rows.append([ticker, full_name, "No future dividend announced"])
-        continue
-
-    row = future.iloc[0]
-
-    def f(x): return x.strftime("%d/%m/%Y") if pd.notna(x) else "TBA"
-
-    pay_uk, ex_uk = f(row["Pay Date"]), f(row["Ex Date"])
-    div = row["Dividend"]
-
-    status_rows.append([ticker, full_name, f"Next: {pay_uk} | {div}"])
-    upcoming_rows.append([ticker, full_name, div, ex_uk, pay_uk])
+@st.cache_data(ttl=60 * 60 * 6, show_spinner="Fetching dividend calendar…")
+def load_view():
+    return get_uk_dividend_view(COMPANIES)
 
 
+col_a, col_b = st.columns([1, 5])
+with col_a:
+    if st.button("🔄 Refresh"):
+        load_view.clear()
+
+view = load_view()
+
+# ---- Status table ----
 st.subheader("Company Dividend Status")
-st.dataframe(pd.DataFrame(status_rows, columns=["Ticker","Company","Status"]),
-             hide_index=True, use_container_width=True)
 
-st.subheader("Upcoming Dividend Payments")
+def _status(r):
+    if r["Next Pay Date"] != "TBA":
+        return f"Next pay {r['Next Pay Date']}"
+    if r["Next Ex-Date"] != "TBA":
+        return f"Next ex-date {r['Next Ex-Date']}"
+    if r["Last Declared"] != "TBA":
+        return f"Last paid {r['Last Declared']} ({r['Last Ex-Date']})"
+    return "No data"
 
-if upcoming_rows:
-    st.dataframe(pd.DataFrame(upcoming_rows,
-                columns=["Ticker","Company","Dividend","Ex Date","Pay Date"]),
-                hide_index=True, use_container_width=True)
+status_df = view.copy()
+status_df["Status"] = status_df.apply(_status, axis=1)
+st.dataframe(
+    status_df[["Ticker", "Company", "Status", "Basis"]],
+    hide_index=True, use_container_width=True,
+)
+
+# ---- Forward calendar ----
+st.subheader("Upcoming Dividend Calendar")
+
+cal = view[(view["Next Ex-Date"] != "TBA") | (view["Next Pay Date"] != "TBA")].copy()
+if not cal.empty:
+    st.dataframe(
+        cal[["Ticker", "Company", "Last Declared", "Next Ex-Date", "Next Pay Date", "Basis"]],
+        hide_index=True, use_container_width=True,
+    )
+    st.caption(
+        "‘Indicative’ rows are projected from historical payment cadence and are **not** "
+        "company-declared dates. Amounts shown are the **last declared** dividend in the "
+        "listing currency (UK listings are typically quoted in pence; HSBC declares in USD)."
+    )
 else:
-    st.write("No future dividends detected.")
+    st.write("No forward dividend dates detected for the tracked names right now.")
 
-with st.expander("📥 View Full Raw Extract"):
-    if files:
-        dfs=[pd.read_csv(f).assign(Source=os.path.basename(f)) for f in files]
-        st.dataframe(pd.concat(dfs, ignore_index=True), use_container_width=True, height=350)
+# ---- Raw stored extract (legacy CSVs) ----
+with st.expander("📥 View stored raw extract (legacy scrape files)"):
+    raw = raw_static_extract()
+    if not raw.empty:
+        st.dataframe(raw, use_container_width=True, height=350)
     else:
-        st.write("No raw scrape files found.")
+        st.write("No stored scrape files found.")

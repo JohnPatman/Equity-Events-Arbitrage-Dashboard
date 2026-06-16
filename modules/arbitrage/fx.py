@@ -1,23 +1,41 @@
 import requests
 
+# Frankfurter has two hosts; .dev is the current canonical one, .app still
+# resolves but is occasionally down. We try .dev first, then fall back.
+_FRANKFURTER_HOSTS = [
+    "https://api.frankfurter.dev/v1/latest",
+    "https://api.frankfurter.app/latest",
+]
+
+
 def get_market_fx_usd_gbp():
     """
     Returns (rate, date_string) for USD→GBP from the ECB (Frankfurter API).
-    Frankfurter always provides one fixing per business day.
+    Frankfurter provides one fixing per business day.
+
+    Raises ValueError only if *all* endpoints fail, so the caller can decide
+    how to surface the problem (e.g. fall back to a manual FX override).
     """
-    url = "https://api.frankfurter.app/latest"
     params = {"from": "USD", "to": "GBP"}
+    last_err = None
 
-    r = requests.get(url, params=params, timeout=10)
-    data = r.json()
+    for url in _FRANKFURTER_HOSTS:
+        try:
+            r = requests.get(url, params=params, timeout=10)
+            r.raise_for_status()
+            data = r.json()
 
-    if "rates" not in data:
-        raise ValueError(f"Unexpected FX response: {data}")
+            rates = data.get("rates", {})
+            if "GBP" not in rates:
+                last_err = ValueError(f"Unexpected FX response from {url}: {data}")
+                continue
 
-    rate = data["rates"]["GBP"]
-    date = data["date"]
+            return rates["GBP"], data.get("date", "unknown")
+        except (requests.RequestException, ValueError) as e:
+            last_err = e
+            continue
 
-    return rate, date
+    raise ValueError(f"Could not retrieve USD→GBP FX from any source: {last_err}")
 
 
 # ========== DEBUG RUN ==========

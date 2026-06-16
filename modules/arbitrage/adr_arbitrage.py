@@ -1,20 +1,53 @@
+import time
+import pandas as pd
 import yfinance as yf
+
+
+# ---------------- Robust price helper ---------------- #
+
+def _last_close(ticker: str, attempts: int = 3):
+    """
+    Robustly fetch the most recent close for a ticker.
+
+    Uses a 5-day window (so a single market holiday doesn't return empty),
+    flattens any MultiIndex columns, retries on transient yfinance/Yahoo
+    failures, and returns None instead of raising if nothing is available.
+    """
+    for i in range(attempts):
+        try:
+            df = yf.Ticker(ticker).history(period="5d", auto_adjust=False)
+            if df is not None and not df.empty:
+                if isinstance(df.columns, pd.MultiIndex):
+                    df = df.copy()
+                    df.columns = df.columns.get_level_values(0)
+                closes = df["Close"].dropna()
+                if not closes.empty:
+                    return float(closes.iloc[-1])
+        except Exception:
+            pass
+        time.sleep(0.6 * (i + 1))
+    return None
+
+
+def _require(ticker: str):
+    price = _last_close(ticker)
+    if price is None:
+        raise ValueError(f"No price data available for {ticker} (Yahoo unavailable or rate-limited)")
+    return price
+
 
 # ---------------- FX Helper ---------------- #
 
 def get_fx(from_ccy, to_ccy="USD"):
     """
     Fetch FX using Yahoo Finance.
-    Example: get_fx("TWD", "USD") → uses ticker TWDUSD=X
+    Example: get_fx("TWD", "USD") -> uses ticker TWDUSD=X
     """
     pair = f"{from_ccy}{to_ccy}=X"
-    ticker = yf.Ticker(pair)
-    data = ticker.history(period="1d")
-
-    if data.empty:
+    rate = _last_close(pair)
+    if rate is None:
         raise ValueError(f"FX not available for pair {pair}")
-
-    return float(data["Close"].iloc[-1])
+    return rate
 
 
 # ---------------- ADR Arbitrage Core ---------------- #
@@ -24,15 +57,15 @@ def compute_adr_arbitrage(adr_price, local_price, ratio, fx_local_to_usd):
     adr_price: ADR price in USD
     local_price: local share price in local currency
     ratio: number of local shares per 1 ADR
-    fx_local_to_usd: conversion rate local→USD
+    fx_local_to_usd: conversion rate local->USD
     """
     local_usd_value = (local_price * ratio) * fx_local_to_usd
     arb_pct = (adr_price / local_usd_value - 1) * 100
 
     if adr_price > local_usd_value:
-        direction = "ADR expensive → Sell ADR / Buy Local"
+        direction = "ADR expensive -> Sell ADR / Buy Local"
     elif adr_price < local_usd_value:
-        direction = "ADR cheap → Buy ADR / Sell Local"
+        direction = "ADR cheap -> Buy ADR / Sell Local"
     else:
         direction = "No arbitrage"
 
@@ -51,77 +84,50 @@ def compute_adr_arbitrage(adr_price, local_price, ratio, fx_local_to_usd):
 
 # --- TSM ---
 def tsm_arbitrage():
-    adr = yf.Ticker("TSM")
-    local = yf.Ticker("2330.TW")
-
-    adr_price = adr.history(period="1d")["Close"].iloc[-1]
-    local_price = local.history(period="1d")["Close"].iloc[-1]
-
+    adr_price = _require("TSM")
+    local_price = _require("2330.TW")
     fx = get_fx("TWD", "USD")
     ratio = 5  # 1 ADR = 5 Taiwan shares
-
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 
 # --- BABA ---
 def baba_arbitrage():
-    adr = yf.Ticker("BABA")
-    local = yf.Ticker("9988.HK")
-
-    adr_price = adr.history(period="1d")["Close"].iloc[-1]
-    local_price = local.history(period="1d")["Close"].iloc[-1]
-
+    adr_price = _require("BABA")
+    local_price = _require("9988.HK")
     fx = get_fx("HKD", "USD")
     ratio = 8  # 1 ADR = 8 HK shares
-
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 
 # --- SONY ---
 def sony_arbitrage():
-    adr = yf.Ticker("SONY")
-    local = yf.Ticker("6758.T")
-
-    adr_price = adr.history(period="1d")["Close"].iloc[-1]
-    local_price = local.history(period="1d")["Close"].iloc[-1]
-
+    adr_price = _require("SONY")
+    local_price = _require("6758.T")
     fx = get_fx("JPY", "USD")
     ratio = 1  # 1 ADR = 1 JP share
-
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 
 # --- ASML ---
 def asml_arbitrage():
-    adr = yf.Ticker("ASML")
-    local = yf.Ticker("ASML.AS")
-
-    adr_price = adr.history(period="1d")["Close"].iloc[-1]
-    local_price = local.history(period="1d")["Close"].iloc[-1]
-
+    adr_price = _require("ASML")
+    local_price = _require("ASML.AS")
     fx = get_fx("EUR", "USD")
     ratio = 1  # 1 ADR = 1 EU share
-
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 
-# --- AZN (IMPORTANT: LSE price is in pence → convert to GBP) ---
+# --- AZN (IMPORTANT: LSE price is in pence -> convert to GBP) ---
 def azn_arbitrage():
-    adr = yf.Ticker("AZN")
-    local = yf.Ticker("AZN.L")
+    adr_price = _require("AZN")
 
-    # ADR (USD)
-    adr_price = adr.history(period="1d")["Close"].iloc[-1]
-
-    # LSE quote is in GBp (pence) — must convert to GBP by dividing by 100
-    local_raw = local.history(period="1d")["Close"].iloc[-1]
-    local_price = local_raw / 100.0  # convert GBp → GBP  ✔ FIXED
+    # LSE quote is in GBp (pence) -> must convert to GBP by dividing by 100
+    local_raw = _require("AZN.L")
+    local_price = local_raw / 100.0  # convert GBp -> GBP
 
     fx = get_fx("GBP", "USD")
-
-    # Ratio: 2 ADR = 1 ordinary share → 1 ADR = 0.5 shares
-    ratio = 0.5
-
+    ratio = 0.5  # 2 ADR = 1 ordinary share -> 1 ADR = 0.5 shares
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 
