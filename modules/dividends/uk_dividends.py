@@ -1,29 +1,25 @@
 """
-UK dividend calendar, sourced live from yfinance with a static-CSV fallback.
+UK dividend calendar.
 
-Why this exists
----------------
-The original page relied on per-company IR-site scrapers (regex on hardcoded
-date strings, plus a Selenium/ChromeDriver scraper that cannot run on Streamlit
-Community Cloud). Those produced static CSVs that went stale and stopped
-yielding any future-dated rows. This module replaces that with a self-updating
-source:
-
-  * forward ex-date / pay-date come from yfinance `.calendar` when available;
-  * the most recently declared dividend (amount + date) comes from the reliable
-    `.get_dividends()` history;
-  * if no genuine forward date is published yet, an *indicative* next ex-date is
-    projected from the historical payment cadence and clearly flagged as such;
-  * everything is wrapped so a Yahoo failure degrades to whatever static CSV
-    exists rather than crashing.
+Source priority (per company):
+  1. dividenddata.co.uk  — DECLARED dividend timetable (declaration date, ex-date,
+     pay date, amount, type) scraped from clean static HTML. Each entry on that
+     site is sourced from the company's own RNS dividend-declaration announcement,
+     so these are real declared dates, not estimates. One resilient parser instead
+     of five fragile per-IR-site scrapers (and no Selenium, so it runs on Cloud).
+  2. yfinance — last declared amount + an INDICATIVE next ex-date projected from
+     historical payment cadence (clearly flagged) when nothing is declared yet.
+  3. stored upcoming_*.csv — last-resort fallback if the network is unavailable.
 
 No Streamlit imports here so the module stays importable/testable; callers wrap
 the live fetch in st.cache_data.
 """
 
+import io
 import os
 import glob
-from datetime import date, datetime
+import requests
+from datetime import date, timedelta
 
 import pandas as pd
 import yfinance as yf
@@ -35,31 +31,145 @@ COLUMNS = [
     "Next Ex-Date", "Next Pay Date", "Basis", "Source",
 ]
 
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-GB,en;q=0.9",
+}
+
+DD_EX_PAGE = "https://www.dividenddata.co.uk/exdividenddate.py?m=ftse100"
+DD_PAY_PAGE = "https://www.dividenddata.co.uk/dividend-payment-dates.py?m=ftse100"
+
 
 # ---------------------------------------------------------------------------
-# helpers
+# date / formatting helpers
 # ---------------------------------------------------------------------------
-def _to_date(x):
-    if x is None:
+def _infer_year(daymon):
+    """Parse dividenddata's 'DD-Mon' (no year) into a date, inferring the year.
+
+    If the resulting date is more than ~45 days in the past, roll it to next year
+    (dividenddata lists forward dates, so a far-past month means next year).
+    """
+    s = str(daymon).strip()
+    if not s or s.lower() in ("nan", "tba", "-"):
         return None
-    if isinstance(x, (list, tuple)):
-        x = x[0] if x else None
-    try:
-        ts = pd.to_datetime(x, errors="coerce")
-        if pd.isna(ts):
+    parsed = pd.to_datetime(s, format="%d-%b", errors="coerce")
+    if pd.isna(parsed):
+        parsed = pd.to_datetime(s, errors="coerce")
+        if pd.isna(parsed):
             return None
-        return ts.date()
-    except Exception:
+        if parsed.year >= 2000:
+            return parsed.date()
+    try:
+        d = date(date.today().year, parsed.month, parsed.day)
+    except ValueError:
         return None
+    if d < date.today() - timedelta(days=45):
+        d = date(d.year + 1, d.month, d.day)
+    return d
 
 
 def _fmt(d):
     return d.strftime("%d %b %Y") if isinstance(d, date) else "TBA"
 
 
-def _currency_for(tkr_obj):
+# ---------------------------------------------------------------------------
+# dividenddata.co.uk scraper (PRIMARY — declared dates)
+# ---------------------------------------------------------------------------
+def _flatten_cols(df: pd.DataFrame) -> pd.DataFrame:
+    if isinstance(df.columns, pd.MultiIndex):
+        df = df.copy()
+        df.columns = [" ".join(str(x) for x in tup).strip() for tup in df.columns]
+    return df
+
+
+def _find_col(df: pd.DataFrame, *keywords):
+    """First column whose lowercased name contains ALL given keywords."""
+    for c in df.columns:
+        cl = str(c).lower()
+        if all(k in cl for k in keywords):
+            return c
+    return None
+
+
+def _read_tables(url: str):
+    r = requests.get(url, headers=_HEADERS, timeout=15)
+    r.raise_for_status()
+    return [_flatten_cols(t) for t in pd.read_html(io.StringIO(r.text))]
+
+
+def _harvest(df: pd.DataFrame, companies: dict, out: dict, has_ex: bool):
+    name_col = _find_col(df, "name")
+    ticker_col = _find_col(df, "ticker")  # the payment page has a separate Ticker column
+    amt_col = _find_col(df, "dividend") or _find_col(df, "div")
+    type_col = _find_col(df, "type")
+    pay_col = _find_col(df, "payment")
+    ex_col = _find_col(df, "ex-div") or _find_col(df, "ex div")
+    decl_col = _find_col(df, "declared")
+    if pay_col is None or (name_col is None and ticker_col is None):
+        return
+
+    for _, row in df.iterrows():
+        # the ex-dividend page embeds the ticker in the Name cell ("PersimmonPSN");
+        # the payment page has a dedicated Ticker column.
+        row_tkr = str(row[ticker_col]).strip().upper() if ticker_col is not None else None
+        compact = str(row[name_col]).upper().replace(" ", "") if name_col is not None else ""
+        for ticker in companies:
+            matched = (row_tkr == ticker) if row_tkr else (ticker in compact)
+            if not matched:
+                continue
+            # don't let the pay-only page overwrite a richer ex-page record
+            if not has_ex and ticker in out:
+                break
+
+            amount = str(row[amt_col]).strip() if amt_col else ""
+            dtype = str(row[type_col]).strip() if type_col else ""
+            last_declared = f"{amount} ({dtype})" if dtype and dtype.lower() != "nan" else amount
+
+            rec = out.get(ticker, {})
+            rec["Last Declared"] = last_declared or rec.get("Last Declared")
+            rec["Next Pay Date"] = _infer_year(row[pay_col]) or rec.get("Next Pay Date")
+            if has_ex:
+                rec["Next Ex-Date"] = _infer_year(row[ex_col]) if ex_col else None
+                rec["Last Ex-Date"] = _infer_year(row[decl_col]) if decl_col else None  # declaration date
+                rec["Basis"] = "Declared (dividenddata.co.uk · RNS)"
+            else:
+                rec.setdefault("Next Ex-Date", None)
+                rec.setdefault("Last Ex-Date", None)
+                rec.setdefault("Basis", "Declared — pay date (dividenddata.co.uk · RNS)")
+            rec["Source"] = "declared"
+            out[ticker] = rec
+            break
+
+
+def fetch_dividenddata(companies: dict) -> dict:
+    """Return {ticker: rec} of declared dividends. Never raises."""
+    out = {}
+    # ex-dividend page first (full timetable: declaration / ex / pay)
     try:
-        cur = tkr_obj.fast_info.get("currency")
+        for tbl in _read_tables(DD_EX_PAGE):
+            if _find_col(tbl, "ex-div") or _find_col(tbl, "ex div"):
+                _harvest(tbl, companies, out, has_ex=True)
+    except Exception:
+        pass
+    # payment page (already-ex names awaiting payment: amount + pay date)
+    try:
+        for tbl in _read_tables(DD_PAY_PAGE):
+            if _find_col(tbl, "payment"):
+                _harvest(tbl, companies, out, has_ex=False)
+    except Exception:
+        pass
+    return out
+
+
+# ---------------------------------------------------------------------------
+# yfinance fallback (INDICATIVE cadence projection)
+# ---------------------------------------------------------------------------
+def _currency_for(t):
+    try:
+        cur = t.fast_info.get("currency")
         if cur:
             return cur
     except Exception:
@@ -67,24 +177,25 @@ def _currency_for(tkr_obj):
     return ""
 
 
-# ---------------------------------------------------------------------------
-# live fetch (single ticker)
-# ---------------------------------------------------------------------------
+def _to_date(x):
+    if x is None:
+        return None
+    if isinstance(x, (list, tuple)):
+        x = x[0] if x else None
+    try:
+        ts = pd.to_datetime(x, errors="coerce")
+        return None if pd.isna(ts) else ts.date()
+    except Exception:
+        return None
+
+
 def fetch_one_live(yf_ticker: str) -> dict:
-    """
-    Return a dict of dividend fields for one LSE ticker, or {} if unavailable.
-    Never raises.
-    """
-    out = {
-        "Last Declared": None, "Last Ex-Date": None,
-        "Next Ex-Date": None, "Next Pay Date": None,
-        "Basis": None, "Source": None,
-    }
+    out = {"Last Declared": None, "Last Ex-Date": None, "Next Ex-Date": None,
+           "Next Pay Date": None, "Basis": None, "Source": None}
     try:
         t = yf.Ticker(yf_ticker)
         currency = _currency_for(t)
 
-        # --- historical dividends (reliable) ---
         divs = t.get_dividends()
         last_amt = last_ex = None
         cadence_days = None
@@ -94,28 +205,20 @@ def fetch_one_live(yf_ticker: str) -> dict:
             last_ex = _to_date(divs.index[-1])
             if len(divs) >= 3:
                 gaps = divs.index.to_series().diff().dropna().dt.days
-                gaps = gaps[gaps > 20]  # drop special/duplicate same-period entries
+                gaps = gaps[gaps > 20]
                 if not gaps.empty:
                     cadence_days = int(gaps.tail(6).median())
 
         if last_amt is not None:
-            unit = currency if currency else ""
-            out["Last Declared"] = f"{last_amt:.4f} {unit}".strip()
+            out["Last Declared"] = f"{last_amt:.4f} {currency}".strip()
             out["Last Ex-Date"] = last_ex
 
-        # --- forward dates from the calendar (when published) ---
         cal_ex = cal_pay = None
         try:
             cal = t.calendar
             if isinstance(cal, dict):
                 cal_ex = _to_date(cal.get("Ex-Dividend Date"))
                 cal_pay = _to_date(cal.get("Dividend Date"))
-            elif isinstance(cal, pd.DataFrame) and not cal.empty:
-                # older yfinance returned a DataFrame
-                if "Ex-Dividend Date" in cal.index:
-                    cal_ex = _to_date(cal.loc["Ex-Dividend Date"].iloc[0])
-                if "Dividend Date" in cal.index:
-                    cal_pay = _to_date(cal.loc["Dividend Date"].iloc[0])
         except Exception:
             pass
 
@@ -126,12 +229,10 @@ def fetch_one_live(yf_ticker: str) -> dict:
             out["Basis"] = "Declared (Yahoo calendar)"
             out["Source"] = "live"
         elif last_ex and cadence_days:
-            # project the next ex-date from cadence; advance until it's in the future
             projected = last_ex
             guard = 0
             while projected < today and guard < 12:
-                projected = projected + pd.Timedelta(days=cadence_days)
-                projected = projected.date() if hasattr(projected, "date") else projected
+                projected = projected + timedelta(days=cadence_days)
                 guard += 1
             out["Next Ex-Date"] = projected
             out["Basis"] = f"Indicative (≈{cadence_days}d cadence — not yet declared)"
@@ -146,7 +247,7 @@ def fetch_one_live(yf_ticker: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# static fallback (the legacy upcoming_*.csv files)
+# stored-CSV fallback
 # ---------------------------------------------------------------------------
 def fetch_one_static(ticker: str, full_name: str) -> dict:
     file = os.path.join(DATA_DIR, f"upcoming_{ticker.lower()}.csv")
@@ -168,9 +269,9 @@ def fetch_one_static(ticker: str, full_name: str) -> dict:
     ex = pd.to_datetime(df.get("Ex Date"), errors="coerce", dayfirst=True)
     div = df.get("Dividend", pd.Series(["TBA"] * len(df)))
 
-    out_rows = pd.DataFrame({"Pay": pay, "Ex": ex, "Div": div})
+    rows = pd.DataFrame({"Pay": pay, "Ex": ex, "Div": div})
     today = pd.Timestamp(date.today())
-    future = out_rows[out_rows["Pay"].notna() & (out_rows["Pay"] >= today)].sort_values("Pay")
+    future = rows[rows["Pay"].notna() & (rows["Pay"] >= today)].sort_values("Pay")
     if future.empty:
         return {}
     r = future.iloc[0]
@@ -188,16 +289,15 @@ def fetch_one_static(ticker: str, full_name: str) -> dict:
 # public: build the full view
 # ---------------------------------------------------------------------------
 def get_uk_dividend_view(companies: dict, yf_suffix: str = ".L") -> pd.DataFrame:
-    """
-    companies: {ticker: full_name}, e.g. {"HSBA": "HSBC Holdings", ...}
-    Returns a normalised DataFrame (one row per company).
-    """
+    declared = fetch_dividenddata(companies)
+
     rows = []
     for ticker, full_name in companies.items():
-        yf_ticker = f"{ticker}{yf_suffix}"
-        rec = fetch_one_live(yf_ticker)
+        rec = declared.get(ticker)                        # 1) declared (best)
         if not rec:
-            rec = fetch_one_static(ticker, full_name)
+            rec = fetch_one_live(f"{ticker}{yf_suffix}")  # 2) yfinance indicative
+        if not rec:
+            rec = fetch_one_static(ticker, full_name)     # 3) stored CSV
         if not rec:
             rec = {"Last Declared": None, "Last Ex-Date": None, "Next Ex-Date": None,
                    "Next Pay Date": None, "Basis": "No data", "Source": "none"}
@@ -217,7 +317,6 @@ def get_uk_dividend_view(companies: dict, yf_suffix: str = ".L") -> pd.DataFrame
 
 
 def raw_static_extract() -> pd.DataFrame:
-    """Concatenate all legacy upcoming_*.csv files for the raw-extract expander."""
     files = glob.glob(os.path.join(DATA_DIR, "upcoming_*.csv"))
     frames = []
     for f in files:

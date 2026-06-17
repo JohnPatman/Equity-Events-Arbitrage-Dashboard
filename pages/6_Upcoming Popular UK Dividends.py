@@ -27,11 +27,12 @@ st.title("🔹 Upcoming Popular UK Dividends")
 st.markdown("""This dashboard tracks upcoming UK dividend events for major blue-chip companies
 (HSBC, Unilever, AstraZeneca, GSK, Rio Tinto).
 
-The tool:
-- pulls the most recently declared dividend and historical cadence live from market data,
-- shows the next ex-date / pay date where the company has formally declared one,
-- projects an **indicative** next ex-date from payment cadence where one hasn't been declared yet (clearly flagged),
-- falls back to stored announcements if live data is unavailable.
+The tool, in order of preference per company:
+- pulls the **declared** dividend timetable — declaration date, ex-date, pay date and amount — sourced from each company's RNS announcement (aggregated via dividenddata.co.uk),
+- where nothing is declared yet, falls back to an **indicative** next ex-date projected from historical payment cadence (clearly flagged),
+- and to stored announcements as a last resort if the network is unavailable.
+
+The **Basis** column shows exactly which of these each row came from.
 """)
 
 COMPANIES = {
@@ -84,9 +85,17 @@ if not cal.empty:
         hide_index=True, use_container_width=True,
     )
     st.caption(
-        "‘Indicative’ rows are projected from historical payment cadence and are **not** "
-        "company-declared dates. Amounts shown are the **last declared** dividend in the "
-        "listing currency (UK listings are typically quoted in pence; HSBC declares in USD)."
+        "Rows marked **Declared** are company-announced dates from RNS filings "
+        "(via dividenddata.co.uk). Rows marked **Indicative** are projected from "
+        "historical payment cadence and are **not** company-declared. Amounts are shown "
+        "as declared, in the listing currency — UK listings are typically quoted in pence, "
+        "and some (e.g. HSBC) declare in USD with a sterling equivalent."
+    )
+    st.markdown(
+        "<small>Declared data source: "
+        "<a href='https://www.dividenddata.co.uk/' target='_blank'>dividenddata.co.uk</a> "
+        "(FTSE dividend RNS aggregator)</small>",
+        unsafe_allow_html=True,
     )
 else:
     st.write("No forward dividend dates detected for the tracked names right now.")
