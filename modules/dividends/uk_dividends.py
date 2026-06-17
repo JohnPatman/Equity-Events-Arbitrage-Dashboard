@@ -42,6 +42,11 @@ _HEADERS = {
 DD_EX_PAGE = "https://www.dividenddata.co.uk/exdividenddate.py?m=ftse100"
 DD_PAY_PAGE = "https://www.dividenddata.co.uk/dividend-payment-dates.py?m=ftse100"
 
+# Declared data is scraped LOCALLY by scripts/fetch_uk_dividends.py and committed
+# here, because dividenddata.co.uk sits behind Cloudflare and blocks Streamlit
+# Cloud's datacenter IP. The app reads this committed CSV (it never scrapes live).
+DECLARED_CSV = os.path.join(DATA_DIR, "uk_dividends_declared.csv")
+
 
 # ---------------------------------------------------------------------------
 # date / formatting helpers
@@ -286,18 +291,64 @@ def fetch_one_static(ticker: str, full_name: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# committed declared CSV (PRIMARY on Cloud — written locally by the fetch script)
+# ---------------------------------------------------------------------------
+def _parse_iso(x):
+    s = str(x).strip()
+    if not s or s.lower() in ("nan", "nat", "none", ""):
+        return None
+    ts = pd.to_datetime(s, errors="coerce")
+    return None if pd.isna(ts) else ts.date()
+
+
+def load_declared_csv():
+    """Read Data/uk_dividends_declared.csv -> ({ticker: rec}, fetched_at_str)."""
+    if not os.path.exists(DECLARED_CSV):
+        return {}, None
+    try:
+        df = pd.read_csv(DECLARED_CSV)
+    except Exception:
+        return {}, None
+    out, fetched = {}, None
+    for _, r in df.iterrows():
+        tkr = str(r.get("Ticker", "")).strip().upper()
+        if not tkr:
+            continue
+        fa = r.get("FetchedAt")
+        if isinstance(fa, str) and fa.strip():
+            fetched = fa.strip()
+        out[tkr] = {
+            "Last Declared": (str(r.get("Last Declared")).strip()
+                              if pd.notna(r.get("Last Declared")) else None),
+            "Last Ex-Date": _parse_iso(r.get("Declared Date")),
+            "Next Ex-Date": _parse_iso(r.get("Ex Date")),
+            "Next Pay Date": _parse_iso(r.get("Pay Date")),
+            "Basis": (str(r.get("Basis")).strip() if pd.notna(r.get("Basis"))
+                      else "Declared (dividenddata.co.uk · RNS)"),
+            "Source": "declared",
+        }
+    return out, fetched
+
+
+def declared_asof():
+    """The 'FetchedAt' stamp from the committed CSV, or None."""
+    _, fetched = load_declared_csv()
+    return fetched
+
+
+# ---------------------------------------------------------------------------
 # public: build the full view
 # ---------------------------------------------------------------------------
 def get_uk_dividend_view(companies: dict, yf_suffix: str = ".L") -> pd.DataFrame:
-    declared = fetch_dividenddata(companies)
+    declared, _ = load_declared_csv()              # 1) committed declared CSV
 
     rows = []
     for ticker, full_name in companies.items():
-        rec = declared.get(ticker)                        # 1) declared (best)
+        rec = declared.get(ticker)
         if not rec:
             rec = fetch_one_live(f"{ticker}{yf_suffix}")  # 2) yfinance indicative
         if not rec:
-            rec = fetch_one_static(ticker, full_name)     # 3) stored CSV
+            rec = fetch_one_static(ticker, full_name)     # 3) legacy stored CSV
         if not rec:
             rec = {"Last Declared": None, "Last Ex-Date": None, "Next Ex-Date": None,
                    "Next Pay Date": None, "Basis": "No data", "Source": "none"}

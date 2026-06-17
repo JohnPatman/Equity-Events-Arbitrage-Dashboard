@@ -4,7 +4,7 @@ from modules.theme import apply_bloomberg_theme
 apply_bloomberg_theme()
 import pandas as pd
 
-from modules.dividends.uk_dividends import get_uk_dividend_view, raw_static_extract
+from modules.dividends.uk_dividends import get_uk_dividend_view, raw_static_extract, declared_asof
 
 st.markdown("""
 <style>
@@ -28,9 +28,12 @@ st.markdown("""This dashboard tracks upcoming UK dividend events for major blue-
 (HSBC, Unilever, AstraZeneca, GSK, Rio Tinto).
 
 The tool, in order of preference per company:
-- pulls the **declared** dividend timetable — declaration date, ex-date, pay date and amount — sourced from each company's RNS announcement (aggregated via dividenddata.co.uk),
-- where nothing is declared yet, falls back to an **indicative** next ex-date projected from historical payment cadence (clearly flagged),
-- and to stored announcements as a last resort if the network is unavailable.
+- reads the **declared** dividend timetable — declaration date, ex-date, pay date and
+  amount — from each company's RNS announcement (via dividenddata.co.uk), refreshed by a
+  local fetch script and committed to the repo,
+- where nothing is declared yet, falls back to an **indicative** next ex-date projected
+  from historical payment cadence (clearly flagged),
+- and to legacy stored announcements as a last resort.
 
 The **Basis** column shows exactly which of these each row came from.
 """)
@@ -58,6 +61,10 @@ view = load_view()
 
 # ---- Status table ----
 st.subheader("Company Dividend Status")
+
+_asof = declared_asof()
+if _asof:
+    st.caption(f"Declared data last refreshed: {_asof}")
 
 def _status(r):
     if r["Next Pay Date"] != "TBA":
