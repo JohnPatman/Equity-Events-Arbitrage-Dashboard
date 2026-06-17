@@ -118,8 +118,12 @@ def asml_arbitrage():
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 
-# --- AZN (IMPORTANT: LSE price is in pence -> convert to GBP) ---
+# --- AZN (NYSE line is now a DIRECT ordinary-share listing, 1:1 with LSE) ---
 def azn_arbitrage():
+    # As of 2 Feb 2026 AstraZeneca harmonised its listing: the old 2-for-1 ADR
+    # programme was withdrawn and ordinary shares now list directly on the NYSE,
+    # 1:1 with the London ordinary line (which is why the US price ~doubled).
+    # So this is a dual-primary parity check, ratio 1.0 — not the old 0.5 ADR ratio.
     adr_price = _require("AZN")
 
     # LSE quote is in GBp (pence) -> must convert to GBP by dividing by 100
@@ -127,7 +131,7 @@ def azn_arbitrage():
     local_price = local_raw / 100.0  # convert GBp -> GBP
 
     fx = get_fx("GBP", "USD")
-    ratio = 0.5  # 2 ADR = 1 ordinary share -> 1 ADR = 0.5 shares
+    ratio = 1.0  # 1 NYSE ordinary share = 1 LSE ordinary share
     return compute_adr_arbitrage(adr_price, local_price, ratio, fx)
 
 

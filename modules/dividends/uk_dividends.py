@@ -105,6 +105,19 @@ def _read_tables(url: str):
     return [_flatten_cols(t) for t in pd.read_html(io.StringIO(r.text))]
 
 
+def _row_ticker(row, ticker_col, name_col):
+    """Get the row's ticker. Payment page has a dedicated Ticker column; the
+    ex-dividend page puts it as the trailing token of the Name cell
+    ('AstraZeneca AZN'). Normalised (upper, no trailing dot)."""
+    if ticker_col is not None:
+        raw = str(row[ticker_col])
+    else:
+        name = str(row[name_col]).strip()
+        parts = name.split()
+        raw = parts[-1] if len(parts) > 1 else name
+    return raw.strip().upper().rstrip(".")
+
+
 def _harvest(df: pd.DataFrame, companies: dict, out: dict, has_ex: bool):
     name_col = _find_col(df, "name")
     ticker_col = _find_col(df, "ticker")  # the payment page has a separate Ticker column
@@ -116,37 +129,34 @@ def _harvest(df: pd.DataFrame, companies: dict, out: dict, has_ex: bool):
     if pay_col is None or (name_col is None and ticker_col is None):
         return
 
+    wanted = {t.upper().rstrip("."): t for t in companies}
+
     for _, row in df.iterrows():
-        # the ex-dividend page embeds the ticker in the Name cell ("PersimmonPSN");
-        # the payment page has a dedicated Ticker column.
-        row_tkr = str(row[ticker_col]).strip().upper() if ticker_col is not None else None
-        compact = str(row[name_col]).upper().replace(" ", "") if name_col is not None else ""
-        for ticker in companies:
-            matched = (row_tkr == ticker) if row_tkr else (ticker in compact)
-            if not matched:
-                continue
-            # don't let the pay-only page overwrite a richer ex-page record
-            if not has_ex and ticker in out:
-                break
+        row_tkr = _row_ticker(row, ticker_col, name_col)
+        ticker = wanted.get(row_tkr)
+        if ticker is None:
+            continue
+        # don't let the pay-only page overwrite a richer ex-page record
+        if not has_ex and ticker in out:
+            continue
 
-            amount = str(row[amt_col]).strip() if amt_col else ""
-            dtype = str(row[type_col]).strip() if type_col else ""
-            last_declared = f"{amount} ({dtype})" if dtype and dtype.lower() != "nan" else amount
+        amount = str(row[amt_col]).strip() if amt_col else ""
+        dtype = str(row[type_col]).strip() if type_col else ""
+        last_declared = f"{amount} ({dtype})" if dtype and dtype.lower() != "nan" else amount
 
-            rec = out.get(ticker, {})
-            rec["Last Declared"] = last_declared or rec.get("Last Declared")
-            rec["Next Pay Date"] = _infer_year(row[pay_col]) or rec.get("Next Pay Date")
-            if has_ex:
-                rec["Next Ex-Date"] = _infer_year(row[ex_col]) if ex_col else None
-                rec["Last Ex-Date"] = _infer_year(row[decl_col]) if decl_col else None  # declaration date
-                rec["Basis"] = "Declared (dividenddata.co.uk · RNS)"
-            else:
-                rec.setdefault("Next Ex-Date", None)
-                rec.setdefault("Last Ex-Date", None)
-                rec.setdefault("Basis", "Declared — pay date (dividenddata.co.uk · RNS)")
-            rec["Source"] = "declared"
-            out[ticker] = rec
-            break
+        rec = out.get(ticker, {})
+        rec["Last Declared"] = last_declared or rec.get("Last Declared")
+        rec["Next Pay Date"] = _infer_year(row[pay_col]) or rec.get("Next Pay Date")
+        if has_ex:
+            rec["Next Ex-Date"] = _infer_year(row[ex_col]) if ex_col else None
+            rec["Last Ex-Date"] = _infer_year(row[decl_col]) if decl_col else None  # declaration date
+            rec["Basis"] = "Declared (RNS announcement)"
+        else:
+            rec.setdefault("Next Ex-Date", None)
+            rec.setdefault("Last Ex-Date", None)
+            rec.setdefault("Basis", "Declared — pay date (RNS announcement)")
+        rec["Source"] = "declared"
+        out[ticker] = rec
 
 
 def fetch_dividenddata(companies: dict) -> dict:
@@ -324,8 +334,9 @@ def load_declared_csv():
             "Next Ex-Date": _parse_iso(r.get("Ex Date")),
             "Next Pay Date": _parse_iso(r.get("Pay Date")),
             "Basis": (str(r.get("Basis")).strip() if pd.notna(r.get("Basis"))
-                      else "Declared (dividenddata.co.uk · RNS)"),
-            "Source": "declared",
+                      else "Declared (RNS announcement)"),
+            "Source": (str(r.get("Source")).strip() if pd.notna(r.get("Source"))
+                       else "declared"),
         }
     return out, fetched
 

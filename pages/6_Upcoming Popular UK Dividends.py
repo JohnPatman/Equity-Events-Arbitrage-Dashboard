@@ -24,47 +24,54 @@ div[data-baseweb="input"] {
 """, unsafe_allow_html=True)
 
 st.title("🔹 Upcoming Popular UK Dividends")
-st.markdown("""This dashboard tracks upcoming UK dividend events for major blue-chip companies
-(HSBC, Unilever, AstraZeneca, GSK, Rio Tinto).
-
-The tool, in order of preference per company:
-- reads the **declared** dividend timetable — declaration date, ex-date, pay date and
-  amount — from each company's RNS announcement (via dividenddata.co.uk), refreshed by a
-  local fetch script and committed to the repo,
-- where nothing is declared yet, falls back to an **indicative** next ex-date projected
-  from historical payment cadence (clearly flagged),
-- and to legacy stored announcements as a last resort.
-
-The **Basis** column shows exactly which of these each row came from.
-""")
+st.markdown(
+    "Dividend timing for 20 of the largest UK-listed companies. Where a company has "
+    "formally announced its next dividend, you get the real dates: when the shares go "
+    "ex-dividend and when the cash is paid. Where nothing has been announced yet, the next "
+    "ex-date is an estimate based on how often the company has paid in the past, marked so "
+    "it's obvious which is which. The Basis column tells you the source for each row."
+)
 
 COMPANIES = {
     "HSBA": "HSBC Holdings",
-    "ULVR": "Unilever PLC",
-    "AZN":  "AstraZeneca PLC",
-    "GSK":  "GSK PLC",
-    "RIO":  "Rio Tinto PLC",
+    "ULVR": "Unilever",
+    "AZN":  "AstraZeneca",
+    "GSK":  "GSK",
+    "RIO":  "Rio Tinto",
+    "SHEL": "Shell",
+    "BP":   "BP",
+    "GLEN": "Glencore",
+    "BATS": "British American Tobacco",
+    "DGE":  "Diageo",
+    "LLOY": "Lloyds Banking Group",
+    "BARC": "Barclays",
+    "NWG":  "NatWest Group",
+    "NG":   "National Grid",
+    "LGEN": "Legal & General",
+    "AAL":  "Anglo American",
+    "REL":  "RELX",
+    "IMB":  "Imperial Brands",
+    "BA":   "BAE Systems",
+    "AV":   "Aviva",
 }
 
 
-@st.cache_data(ttl=60 * 60 * 6, show_spinner="Fetching dividend calendar…")
-def load_view():
+# Cache keyed on the data file's timestamp: when a freshly-fetched CSV is committed
+# (new FetchedAt), the key changes and the view recomputes automatically — no manual
+# refresh, and no stale table lingering after a redeploy.
+@st.cache_data(ttl=60 * 60 * 6, show_spinner="Loading dividend calendar…")
+def load_view(cache_key):
     return get_uk_dividend_view(COMPANIES)
 
 
-col_a, col_b = st.columns([1, 5])
-with col_a:
-    if st.button("🔄 Refresh"):
-        load_view.clear()
-
-view = load_view()
+view = load_view(declared_asof() or "none")
 
 # ---- Status table ----
 st.subheader("Company Dividend Status")
 
 _asof = declared_asof()
 if _asof:
-    st.caption(f"Declared data last refreshed: {_asof}")
+    st.caption(f"Data last refreshed: {_asof}")
 
 def _status(r):
     if r["Next Pay Date"] != "TBA":
@@ -92,11 +99,10 @@ if not cal.empty:
         hide_index=True, use_container_width=True,
     )
     st.caption(
-        "Rows marked **Declared** are company-announced dates from RNS filings "
-        "(via dividenddata.co.uk). Rows marked **Indicative** are projected from "
-        "historical payment cadence and are **not** company-declared. Amounts are shown "
-        "as declared, in the listing currency — UK listings are typically quoted in pence, "
-        "and some (e.g. HSBC) declare in USD with a sterling equivalent."
+        "Declared rows are the company's announced dates. Indicative rows are an estimate "
+        "from past payment timing, not confirmed dates. Amounts are shown as the company "
+        "declared them — usually pence for UK shares, though a few (HSBC, for one) declare "
+        "in dollars and show a sterling equivalent."
     )
     st.markdown(
         "<small>Declared data source: "

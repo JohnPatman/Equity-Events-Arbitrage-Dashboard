@@ -1,3 +1,21 @@
-Ticker,Company,Last Declared,Declared Date,Ex Date,Pay Date,Basis,FetchedAt
-HSBA,HSBC Holdings,$0.1 (7.4489p) (Q1),,,2026-06-26,Declared — pay date (dividenddata.co.uk · RNS),2026-06-17 07:28
-ULVR,Unilever PLC,40.46p (Q1),,,2026-06-26,Declared — pay date (dividenddata.co.uk · RNS),2026-06-17 07:28
+Ticker,Company,Last Declared,Declared Date,Ex Date,Pay Date,Basis,Source,FetchedAt
+HSBA,HSBC Holdings,$0.1 (7.4489p) (Q1),,,2026-06-26,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+ULVR,Unilever,40.46p (Q1),,,2026-06-26,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+AZN,AstraZeneca,159.5000 GBp,2026-02-19,2026-08-19,,Indicative (≈181d cadence — not yet declared),live,2026-06-17 19:12
+GSK,GSK,17.0000 GBp,2026-05-14,2026-08-13,,Indicative (≈91d cadence — not yet declared),live,2026-06-17 19:12
+RIO,Rio Tinto,191.7705 GBp,2026-03-05,2026-09-02,,Indicative (≈181d cadence — not yet declared),live,2026-06-17 19:12
+SHEL,Shell,$0.3906 (29.18p) (Q1),,,2026-06-29,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+BP,BP,$0.0832 (6.1844p) (Q1),,,2026-06-26,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+GLEN,Glencore,$0.085 (Interim 1),,,2026-06-03,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+BATS,British American Tobacco,61.2600 GBp,2026-03-26,2026-07-09,,Declared (Yahoo calendar),live,2026-06-17 19:12
+DGE,Diageo,$0.2 (14.94p) (Interim),,,2026-06-04,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+LLOY,Lloyds Banking Group,2.4300 GBp,2026-04-09,2026-10-08,,Indicative (≈182d cadence — not yet declared),live,2026-06-17 19:12
+BARC,Barclays,5.6000 GBp,2026-02-19,2026-08-19,,Indicative (≈181d cadence — not yet declared),live,2026-06-17 19:12
+NWG,NatWest Group,23.0000 GBp,2026-03-19,2026-09-16,,Indicative (≈181d cadence — not yet declared),live,2026-06-17 19:12
+NG,National Grid,32.1400 GBp,2026-05-28,2026-11-25,,Indicative (≈181d cadence — not yet declared),live,2026-06-17 19:12
+LGEN,Legal & General,15.67p (Final),,,2026-06-04,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+AAL,Anglo American,11.8220 GBp,2026-03-12,2026-09-09,,Indicative (≈181d cadence — not yet declared),live,2026-06-17 19:12
+REL,RELX,48p (Final),,,2026-06-18,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+IMB,Imperial Brands,41.68p (Q1),,,2026-06-30,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+BA,BAE Systems,22.8p (Final),,,2026-06-04,Declared — pay date (RNS announcement),declared,2026-06-17 19:12
+AV,Aviva,26.2000 GBp,2026-03-26,2026-09-20,,Indicative (≈178d cadence — not yet declared),live,2026-06-17 19:12
